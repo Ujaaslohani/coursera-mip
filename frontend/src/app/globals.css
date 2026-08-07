@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-heading: var(--heading);
+  --color-body: var(--body);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Background: #FFFFFF */
+  --background: #ffffff;
+  /* Text heading colors: #16242E */
+  --foreground: #16242E;
+  --heading: #16242E;
+  
+  --card: #ffffff;
+  --card-foreground: #16242E;
+  --popover: #ffffff;
+  --popover-foreground: #16242E;
+  
+  /* Buttons: #4F6BFE */
+  --primary: #4F6BFE;
+  /* Buttons hover: #1C40FE */
+  --primary-hover: #1C40FE;
+  --primary-foreground: #ffffff;
+  
+  --secondary: #F0F3FF;
+  --secondary-foreground: #4F6BFE;
+  
+  /* Body fonts color: #92A4B0 */
+  --body: #92A4B0;
+  --muted: #F8FAFC;
+  --muted-foreground: #92A4B0;
+  
+  --accent: #EEF2FF;
+  /* Color for font when selected, active, or hovered: #4F6BFE */
+  --accent-foreground: #4F6BFE;
+  
+  --destructive: #EF4444;
+  
+  --border: #E2E8F0;
+  /* Border color when hovered: #405EFE */
+  --border-hover: #405EFE;
+  
+  --input: #E2E8F0;
+  --ring: #4F6BFE;
+  
+  --radius: 0.625rem;
+  
+  --sidebar: #ffffff;
+  --sidebar-foreground: #16242E;
+  --sidebar-primary: #4F6BFE;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #EEF2FF;
+  --sidebar-accent-foreground: #4F6BFE;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #4F6BFE;
+}
+
+.dark {
+  --background: #0B1319;
+  --foreground: #F1F5F9;
+  --heading: #FFFFFF;
+  --card: #121E26;
+  --card-foreground: #F1F5F9;
+  --popover: #121E26;
+  --popover-foreground: #F1F5F9;
+  --primary: #4F6BFE;
+  --primary-hover: #1C40FE;
+  --primary-foreground: #ffffff;
+  --secondary: #1E293B;
+  --secondary-foreground: #4F6BFE;
+  --body: #92A4B0;
+  --muted: #1E293B;
+  --muted-foreground: #92A4B0;
+  --accent: #1E293B;
+  --accent-foreground: #4F6BFE;
+  --destructive: #EF4444;
+  --border: #1E293B;
+  --border-hover: #405EFE;
+  --input: #1E293B;
+  --ring: #4F6BFE;
+  --sidebar: #0B1319;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #4F6BFE;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #4F6BFE;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #4F6BFE;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-body font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-heading font-heading;
+  }
+}
