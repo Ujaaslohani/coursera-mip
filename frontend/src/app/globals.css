@@ -7,6 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --font-heading: var(--font-heading);
   --font-body: var(--font-body);
   --color-primary: var(--primary);
@@ -48,8 +52,8 @@
 }
 
 :root {
-  /* Background: #FFFFFF */
-  --background: #ffffff;
+  /* Background: #F8FAFC */
+  --background: #F8FAFC;
   /* Text heading colors: #16242E */
   --foreground: #16242E;
   --heading: #16242E;
@@ -79,11 +83,11 @@
   
   --destructive: #EF4444;
   
-  --border: #E2E8F0;
+  --border: #CBD5E1;
   /* Border color when hovered: #405EFE */
   --border-hover: #405EFE;
   
-  --input: #E2E8F0;
+  --input: #CBD5E1;
   --ring: #4F6BFE;
   
   --radius: 0.625rem;
@@ -94,40 +98,40 @@
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #EEF2FF;
   --sidebar-accent-foreground: #4F6BFE;
-  --sidebar-border: #E2E8F0;
+  --sidebar-border: #CBD5E1;
   --sidebar-ring: #4F6BFE;
 }
 
 .dark {
-  --background: #0B1319;
-  --foreground: #F1F5F9;
+  --background: #000000;
+  --foreground: #EDEDED;
   --heading: #FFFFFF;
-  --card: #121E26;
-  --card-foreground: #F1F5F9;
-  --popover: #121E26;
-  --popover-foreground: #F1F5F9;
+  --card: #0A0A0A;
+  --card-foreground: #EDEDED;
+  --popover: #0A0A0A;
+  --popover-foreground: #EDEDED;
   --primary: #4F6BFE;
   --primary-hover: #1C40FE;
   --primary-foreground: #ffffff;
-  --secondary: #1E293B;
-  --secondary-foreground: #4F6BFE;
-  --body: #92A4B0;
-  --muted: #1E293B;
-  --muted-foreground: #92A4B0;
-  --accent: #1E293B;
-  --accent-foreground: #4F6BFE;
+  --secondary: #171717;
+  --secondary-foreground: #EDEDED;
+  --body: #888888;
+  --muted: #171717;
+  --muted-foreground: #888888;
+  --accent: #2B2B2B;
+  --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
-  --border: #1E293B;
+  --border: #222222;
   --border-hover: #405EFE;
-  --input: #1E293B;
+  --input: #222222;
   --ring: #4F6BFE;
-  --sidebar: #0B1319;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #4F6BFE;
+  --sidebar: #000000;
+  --sidebar-foreground: #EDEDED;
+  --sidebar-primary: #2B2B2B;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1E293B;
-  --sidebar-accent-foreground: #4F6BFE;
-  --sidebar-border: #1E293B;
+  --sidebar-accent: #2B2B2B;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #222222;
   --sidebar-ring: #4F6BFE;
 }
 
@@ -136,9 +140,37 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-body font-body;
+    @apply bg-background text-foreground font-body;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply text-heading font-heading;
   }
 }
+
+/* Smooth fade-in / fade-out transition for theme colors */
+html,
+body,
+header,
+main,
+nav,
+aside,
+footer,
+div,
+section,
+article,
+table,
+tr,
+th,
+td,
+input,
+textarea,
+select,
+button,
+span,
+p,
+h1, h2, h3, h4, h5, h6,
+svg,
+path {
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out, border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, fill 0.3s ease-in-out, stroke 0.3s ease-in-out;
+}
+
