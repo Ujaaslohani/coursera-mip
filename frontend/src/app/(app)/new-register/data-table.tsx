@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
 import { DataTableProps } from "@/types";
 import { RowData, useTable } from "@tanstack/react-table";
 import { features } from "@/constants/processing-table-features";
@@ -27,15 +26,13 @@ export function DataTable<TData extends RowData>({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search all columns..."
-            value={globalFilter ?? ""}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-8 w-full"
-          />
-        </div>
+        <SearchInput
+          placeholder="Search all columns..."
+          value={globalFilter ?? ""}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          showClear
+          onClear={() => setGlobalFilter("")}
+        />
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
