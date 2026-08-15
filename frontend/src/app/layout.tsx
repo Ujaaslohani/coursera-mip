@@ -1,18 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Sora } from 'next/font/google';
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ['400', '500', '700'],
-  variable: "--font-body"
-});
-
-const sora = Sora({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-heading",
-});
+import { inter, sora } from "@/constants/fonts-config";
 
 export const metadata: Metadata = {
   title: "Multimodal Intelligence Platform",
