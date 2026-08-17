@@ -2,13 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Eye, 
-  EyeOff, 
-  Lock, 
-  Mail, 
-  ArrowRight
-} from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,51 +27,45 @@ export default function LoginPage() {
       setErrorMessage("Please enter both email and password.");
       return;
     }
-
-    setIsLoading(true);
-
-    // Simulate authentication delay
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to dashboard
-      router.push("/dashboard");
-    }, 600);
   };
 
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between bg-background text-foreground selection:bg-primary/20 selection:text-primary">
-      {/* Theme Toggle in corner */}
+      {/* THEME TOGGLE IN CORNER */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
 
-      {/* Main Login Card Section */}
+      {/* MAIN LOGIN CARD SECTION */}
       <main className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-[420px]">
-          {/* Card Container */}
+          {/* CARD CONTAINER */}
           <div className="rounded-2xl border border-border bg-card p-7 md:p-8 shadow-sm transition-all">
-            {/* Card Header */}
+            {/* CARD HEADER */}
             <div className="text-center mb-6 space-y-1.5">
               <h1 className="text-2xl font-bold font-heading tracking-tight text-foreground">
-                System Access 
+                System Access
               </h1>
               <p className="text-sm text-muted-foreground">
                 Sign in with your organization account to continue
               </p>
             </div>
 
-            {/* Error Message */}
+            {/* ERROR MESSAGE */}
             {errorMessage && (
               <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            {/* Form */}
+            {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email field */}
+              {/* EMAIL FIELD */}
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-semibold tracking-wider text-muted-foreground">
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-semibold tracking-wider text-muted-foreground"
+                >
                   Email Address
                 </Label>
                 <div className="relative">
@@ -95,17 +83,22 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password field */}
+              {/* PASSWORD FIELD */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs font-semibold tracking-wider text-muted-foreground">
+                  <Label
+                    htmlFor="password"
+                    className="text-xs font-semibold tracking-wider text-muted-foreground"
+                  >
                     Password
                   </Label>
                   <a
                     href="#forgot-password"
                     onClick={(e) => {
                       e.preventDefault();
-                      alert("Please contact your MIP platform administrator to reset credentials.");
+                      alert(
+                        "Please contact your MIP platform administrator to reset credentials.",
+                      );
                     }}
                     className="text-xs font-medium text-primary hover:text-primary-hover transition-colors"
                   >
@@ -128,7 +121,9 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded focus:outline-hidden"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="size-4" />
@@ -139,7 +134,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember me checkbox */}
+              {/* REMEMBER ME CHECKBOX */}
               <div className="flex items-center justify-between pt-1">
                 <Checkbox
                   id="remember-me"
@@ -149,7 +144,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Sign In button */}
+              {/* SIGN IN BUTTON */}
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -172,9 +167,12 @@ export default function LoginPage() {
         </div>
       </main>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="w-full py-4 text-center text-xs text-muted-foreground border-t border-border/50">
-        <p>© {new Date().getFullYear()} Coursera Inc. Multimodal Intelligence Platform</p>
+        <p>
+          © {new Date().getFullYear()} Coursera Inc. Multimodal Intelligence
+          Platform
+        </p>
       </footer>
     </div>
   );

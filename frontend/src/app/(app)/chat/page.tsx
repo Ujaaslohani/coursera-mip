@@ -52,6 +52,7 @@ const Chat = () => {
     setOpen(false)
   }
 
+  // TODO : FILTER REAL HISTORY CHATS 
   const filteredHistory = history.filter(
     (item) =>
       item.title.toLowerCase().includes(historySearch.toLowerCase()) ||
@@ -63,7 +64,7 @@ const Chat = () => {
   return (
     <section className="relative flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-6.5rem)]">
       
-      {/* Floating Chat History Dialog Trigger */}
+      {/* FLOATING CHAT HISTORY DIALOG TRIGGER */}
       <div className="absolute top-0 right-0 z-20">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger
@@ -89,7 +90,7 @@ const Chat = () => {
               </div>
             </DialogHeader>
 
-            {/* Search Input */}
+            {/* SEARCH INPUT */}
             <SearchInput
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
@@ -99,7 +100,8 @@ const Chat = () => {
               className="h-9 text-sm"
             />
 
-            {/* History List */}
+            {/* HISTORY LIST */}
+            {/* TODO : LOAD REAL HISTORY CHATS HERE  */}
             <div className="max-h-72 overflow-y-auto space-y-2 pr-1 -mr-1">
               {filteredHistory.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
@@ -155,7 +157,7 @@ const Chat = () => {
         </Dialog>
       </div>
 
-      {/* Scrollable history chat container */}
+      {/* SCROLLABLE HISTORY CHAT CONTAINER */}
       <main className="flex-1 overflow-y-auto space-y-4 pt-10">
         <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground text-sm gap-2 max-w-md mx-auto">
           <MessageSquare className="h-8 w-8 text-muted-foreground/50 mb-1" />
@@ -170,7 +172,7 @@ const Chat = () => {
         </div>
       </main>
 
-      {/* Input bar pinned at bottom */}
+      {/* INPUT BAR PINNED AT BOTTOM */}
       <footer className="pt-4 shrink-0">
         <form
           onSubmit={(e) => e.preventDefault()}

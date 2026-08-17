@@ -31,11 +31,6 @@ export const navMain: NavItem[] = [
     icon: Lightbulb,
   },
   {
-    title: "Logs",
-    url: "/logs",
-    icon: ScrollText,
-  },
-  {
     title: "Operations",
     url: "/operations",
     icon: Settings,
