@@ -1,0 +1,10 @@
+pandas
+numpy
+opencv-python
+PyMuPDF
+webvtt-py
+google-genai
+pydantic
+python-dotenv
+qdrant-client
+sentence-transformersexit

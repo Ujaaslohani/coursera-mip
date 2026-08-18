@@ -216,3 +216,40 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Database pipeline secrets
+database_pipeline/.env
+database_pipeline/*.env
+!database_pipeline/.env.example
+
+# Python environments and caches
+database_pipeline/.venv/
+database_pipeline/venv/
+database_pipeline/**/__pycache__/
+database_pipeline/**/*.py[cod]
+database_pipeline/.pytest_cache/
+
+# Raw course data
+database_pipeline/deeplearning/
+database_pipeline/data/
+
+# Generated outputs
+database_pipeline/processed/
+database_pipeline/qdrant_storage/
+
+# Checkpoints
+database_pipeline/**/*checkpoint*.json
+database_pipeline/**/*checkpoint*.jsonl
+
+# Large media and source documents
+database_pipeline/**/*.mp4
+database_pipeline/**/*.mkv
+database_pipeline/**/*.avi
+database_pipeline/**/*.pdf
+database_pipeline/**/*.png
+database_pipeline/**/*.jpg
+database_pipeline/**/*.jpeg
+
+# Locally generated manifests
+database_pipeline/manifests/
