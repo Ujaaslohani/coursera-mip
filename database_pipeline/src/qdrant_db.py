@@ -78,17 +78,27 @@ def create_point_id(record_id:str)->str:
 ##converting pandas and missing values to qdrant compatible types
 # ------------------------------------------------------------------------------
 
-def clean_payload_value(value:Any)->Any:
+def clean_payload_value(value: Any) -> Any:
+    """Convert pandas/NumPy values into Qdrant-compatible values."""
 
-    if isinstance(value,(list,dict,bool,int,float,str)):
+    if value is None:
         return None
 
-    if pd.isna(value):
-        return None
-
-    if isinstance(value,(list,dict,bool,int,float)):
+    if isinstance(value, (list, dict)):
         return value
-    
+
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    if isinstance(value, (bool, int, float, str)):
+        return value
+
+    if hasattr(value, "item"):
+        return value.item()
+
     return str(value)
 
 # ------------------------------------------------------------------------------
