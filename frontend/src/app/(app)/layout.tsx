@@ -11,7 +11,7 @@ export default function AppLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-4 transition-[height] ease-linear">
+        <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-card/95 backdrop-blur-md px-4 transition-[height] ease-linear">
           <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
           <div className="flex items-center gap-2">
             <ThemeToggle />

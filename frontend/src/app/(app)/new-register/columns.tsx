@@ -4,7 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { type DataTableFeatures } from "@/constants/processing-table-features";
 import { Processing } from "@/types";
 
-// Define the shape of the processing table 
+// DEFINE THE SHAPE OF THE PROCESSING TABLE
 const columnHelper = createColumnHelper<DataTableFeatures, Processing>()
 
 export const columns = columnHelper.columns([

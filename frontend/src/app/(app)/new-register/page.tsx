@@ -37,6 +37,7 @@ export default function NewRegister() {
     { label: "Discussion Thread", value: "discussion", icon: MessagesSquare },
   ];
 
+  // TODO: IMPLEMENT REGISTER API FROM BACKEND
   function onSubmit(data: object) {
     console.log(data);
   }
@@ -48,9 +49,9 @@ export default function NewRegister() {
         description="Register new asset and make it searchable"
       />
 
-      {/* Asset Intake Section  */}
+      {/* ASSET INTAKE SECTION */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-xs">
-        {/* Assets Registration Form  */}
+        {/* ASSETS REGISTRATION FORM */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <Field>
             <FieldLabel>Title</FieldLabel>
@@ -112,7 +113,8 @@ export default function NewRegister() {
         </form>
       </div>
 
-      {/* Registered Assets and Processing Table Section */}
+      {/* DECIDE TODO : EITHER SHOW MONITOR HERE OR KEEP THE ONE IN THE DASHBOARD  */}
+      {/* REGISTERED ASSETS AND PROCESSING TABLE SECTION */}
       <div className="bg-card border border-border rounded-xl p-6 shadow-xs space-y-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
