@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codebase Walkthrough — Request Flow, Endpoints &amp; Data</title>
+<style>
+:root{
+  --bg:#FAF7F1; --bg-alt:#F1ECE0; --card:#FFFDF9; --ink:#1B1E27; --ink-soft:#4A4F5C; --ink-faint:#8A8677;
+  --accent:#B9762F; --accent-ink:#5C3A15; --accent-2:#35607A; --accent-2-ink:#1E3A4B; --line:#DED5C2;
+  --good:#3F7D5C; --good-bg:#E8F1EA; --warn-bg:#F6E9D7; --arrow:#B9762F;
+  --code-bg:#1B1E27; --code-ink:#E8E6DF; --code-key:#E0A75E; --code-str:#8FBF8A; --code-num:#7FB2CC;
+  --get:#2A7FB8; --post:#B9762F; --shadow: 0 1px 2px rgba(27,30,39,0.04), 0 8px 24px rgba(27,30,39,0.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12141C; --bg-alt:#191C27; --card:#1B1E2A; --ink:#EDEAE2; --ink-soft:#B7B3AA; --ink-faint:#726E64;
+    --accent:#E0A75E; --accent-ink:#F3D9AE; --accent-2:#7FB2CC; --accent-2-ink:#BFE0EE; --line:#2C3040;
+    --good:#6FBF93; --good-bg:#1D2E26; --warn-bg:#2E2618; --arrow:#E0A75E;
+    --code-bg:#0D0E13; --code-ink:#E8E6DF; --get:#7FB2CC; --post:#E0A75E;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 30px rgba(0,0,0,0.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12141C; --bg-alt:#191C27; --card:#1B1E2A; --ink:#EDEAE2; --ink-soft:#B7B3AA; --ink-faint:#726E64;
+  --accent:#E0A75E; --accent-ink:#F3D9AE; --accent-2:#7FB2CC; --accent-2-ink:#BFE0EE; --line:#2C3040;
+  --good:#6FBF93; --good-bg:#1D2E26; --warn-bg:#2E2618; --arrow:#E0A75E;
+  --code-bg:#0D0E13; --code-ink:#E8E6DF; --get:#7FB2CC; --post:#E0A75E;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{ background:var(--bg); color:var(--ink); font-family: ui-sans-serif,"Segoe UI","Helvetica Neue",Arial,sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; }
+h1,h2,h3{ font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif; font-weight:600; color:var(--ink); text-wrap:balance; margin:0; }
+.mono{ font-family: ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,monospace; }
+.wrap{ max-width:1020px; margin:0 auto; padding:0 24px 120px; }
+
+header.hero{ padding:60px 24px 44px; border-bottom:1px solid var(--line);
+  background: radial-gradient(ellipse 900px 420px at 15% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent),
+              radial-gradient(ellipse 700px 380px at 100% 0%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent); }
+.hero-inner{ max-width:840px; margin:0 auto; }
+.eyebrow{ display:inline-flex; align-items:center; gap:8px; font-family:ui-monospace,Consolas,monospace; font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--accent-2-ink); background:color-mix(in srgb, var(--accent-2) 14%, transparent); border:1px solid color-mix(in srgb, var(--accent-2) 30%, transparent);
+  padding:5px 11px; border-radius:100px; margin-bottom:20px; }
+h1.title{ font-size:clamp(28px,4.2vw,42px); line-height:1.1; letter-spacing:-0.01em; }
+.subtitle{ margin-top:14px; font-size:16.5px; color:var(--ink-soft); max-width:680px; }
+.hero-meta{ margin-top:24px; display:flex; gap:22px; flex-wrap:wrap; font-size:13px; color:var(--ink-faint); }
+
+section{ padding-top:56px; }
+section:first-of-type{ padding-top:48px; }
+.kicker{ font-family:ui-monospace,Consolas,monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:10px; }
+h2.section-title{ font-size:clamp(21px,2.8vw,26px); }
+p.lede{ font-size:15px; color:var(--ink-soft); max-width:72ch; margin-top:10px; }
+
+.flow-frame{ margin:22px 0; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px 20px; box-shadow:var(--shadow); overflow-x:auto; }
+.flow{ display:flex; align-items:stretch; gap:0; min-width:min-content; }
+.flow-step{ flex:0 0 auto; width:190px; background:var(--bg-alt); border:1.5px solid var(--line); border-radius:14px; padding:14px 13px; display:flex; flex-direction:column; gap:5px; }
+.flow-step.accent{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--bg-alt)); }
+.flow-step .title{ font-weight:700; font-size:13.5px; color:var(--ink); font-family:ui-monospace,Consolas,monospace; }
+.flow-step .desc{ font-size:11.5px; color:var(--ink-soft); }
+.flow-arrow{ flex:0 0 40px; display:flex; align-items:center; justify-content:center; color:var(--arrow); font-size:20px; font-weight:bold; }
+.flow-arrow .v{ display:none; }
+@media (max-width:760px){ .flow{ flex-direction:column; } .flow-step{ width:100%; } .flow-arrow{ flex-basis:32px; } .flow-arrow .h{ display:none; } .flow-arrow .v{ display:inline; } }
+.flow-caption{ font-size:12.5px; color:var(--ink-faint); text-align:center; margin-top:14px; font-style:italic; }
+
+.stage{ position:relative; margin-top:56px; padding-left:56px; }
+.stage::before{ content:""; position:absolute; left:20px; top:46px; bottom:-56px; width:1.5px; background:var(--line); }
+.stage:last-of-type::before{ display:none; }
+.stage-num{ position:absolute; left:0; top:0; width:40px; height:40px; border-radius:50%; background:var(--card); border:1.5px solid var(--accent); color:var(--accent-ink);
+  display:flex; align-items:center; justify-content:center; font-family:ui-monospace,Consolas,monospace; font-size:14px; font-weight:600; box-shadow:var(--shadow); }
+.stage-label{ font-family:ui-monospace,Consolas,monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:5px; }
+.stage h3.stage-title{ font-size:19px; }
+.stage p.stage-lede{ margin-top:8px; font-size:14px; color:var(--ink-soft); max-width:70ch; }
+
+.endpoint{ display:inline-flex; align-items:center; gap:8px; font-family:ui-monospace,Consolas,monospace; font-size:13px; margin:14px 0 6px; }
+.method{ font-weight:700; font-size:11px; padding:3px 8px; border-radius:6px; color:#fff; letter-spacing:.04em; }
+.method.get{ background:var(--get); }
+.method.post{ background:var(--post); }
+.path{ color:var(--ink); font-weight:600; }
+
+.filepath{ font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--accent-2-ink); background:color-mix(in srgb, var(--accent-2) 10%, var(--bg-alt)); padding:2px 7px; border-radius:6px; }
+
+.callchain{ margin:12px 0 18px; font-family:ui-monospace,Consolas,monospace; font-size:12.5px; color:var(--ink-soft); line-height:2; }
+.callchain .arrow{ color:var(--accent); margin:0 4px; }
+.callchain .fn{ color:var(--ink); font-weight:600; }
+.callchain .file{ color:var(--ink-faint); }
+
+.codeblock{ margin:14px 0; background:var(--code-bg); color:var(--code-ink); border-radius:12px; padding:16px 18px; overflow-x:auto; font-family:ui-monospace,Consolas,monospace; font-size:12.5px; line-height:1.65; box-shadow:var(--shadow); }
+.codeblock .lbl{ display:block; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:color-mix(in srgb, var(--code-ink) 55%, transparent); margin-bottom:8px; }
+.two-col{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:760px){ .two-col{ grid-template-columns:1fr; } }
+
+.datasink{ margin:16px 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13px; }
+.datasink .tbl{ font-family:ui-monospace,Consolas,monospace; font-size:12.5px; background:var(--good-bg); color:var(--good); padding:4px 10px; border-radius:8px; font-weight:600; }
+
+/* ---- Big single-story flow diagram ---- */
+.bigflow{ max-width:640px; margin:26px auto 0; }
+.bigstep{ display:flex; align-items:center; gap:18px; background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:18px 22px; box-shadow:var(--shadow); }
+.bigstep.accent{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, var(--card)); }
+.bigicon{ flex:0 0 auto; width:52px; height:52px; border-radius:14px; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; font-size:26px; }
+.bigstep.accent .bigicon{ background:color-mix(in srgb, var(--accent) 16%, var(--bg-alt)); }
+.bigtitle{ font-weight:700; font-size:15.5px; color:var(--ink); }
+.bigdesc{ font-size:13px; color:var(--ink-soft); margin-top:3px; line-height:1.5; }
+.bigarrow{ text-align:center; color:var(--arrow); font-size:22px; font-weight:bold; padding:4px 0; }
+.apitag{ display:inline-block; font-family:ui-monospace,Consolas,monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:2px 8px; border-radius:100px; margin-left:6px; vertical-align:middle; white-space:nowrap; }
+.apitag.openai{ background:var(--good-bg); color:var(--good); }
+.apitag.local{ background:color-mix(in srgb, var(--accent-2) 16%, transparent); color:var(--accent-2-ink); }
+.apitag.code{ background:var(--ink-faint); color:var(--card); opacity:.55; }
+.bigdesc .apitag{ display:inline-block; margin:2px 6px 2px 0; }
+
+.table-wrap{ overflow-x:auto; margin:20px 0; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow); }
+table{ width:100%; border-collapse:collapse; background:var(--card); font-size:13px; min-width:560px; }
+th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+th{ font-family:ui-monospace,Consolas,monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); background:var(--bg-alt); }
+tr:last-child td{ border-bottom:none; }
+td .mono{ font-size:12px; }
+
+.glossary{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; margin-top:20px; }
+.gterm{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+.gterm .term{ font-weight:600; font-size:13.5px; color:var(--accent-ink); margin-bottom:3px; font-family:ui-monospace,Consolas,monospace; }
+.gterm .def{ font-size:12.5px; color:var(--ink-soft); }
+
+footer{ margin-top:70px; padding:28px 24px 52px; border-top:1px solid var(--line); text-align:center; color:var(--ink-faint); font-size:12px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">● Engineering Onboarding · Codebase Walkthrough</span>
+    <h1 class="title">How the Code Actually Runs This</h1>
+    <p class="subtitle">Every API endpoint, which file handles it, what it calls next, what it returns, and exactly which database table the data lands in — for anyone joining the team who needs to trace a request through the real code, not just the concept.</p>
+    <div class="hero-meta">
+      <div>Backend: FastAPI (<span class="mono">backend/app/</span>)</div>
+      <div>AI logic: <span class="mono">ai/</span> + <span class="mono">pipelines/</span></div>
+      <div>Frontend: Next.js (<span class="mono">frontend/</span>)</div>
+      <div>DB: Postgres + pgvector (Supabase)</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="kicker">The Whole System, One Story</div>
+  <h2 class="section-title">Follow one click, all the way through</h2>
+  <p class="lede">This is what happens when someone types a question into the Query Workspace and hits "Ask." Every other endpoint in this app follows the same shape — this is just the most complete example, so it's the clearest way to see the whole system at once.</p>
+
+  <div class="bigflow">
+    <div class="bigstep">
+      <div class="bigicon">🖥️</div>
+      <div class="bigtext"><div class="bigtitle">You click "Ask"</div><div class="bigdesc">In the browser, on the Query Workspace page</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">📡</div>
+      <div class="bigtext"><div class="bigtitle">The API client sends the request</div><div class="bigdesc"><span class="mono">frontend/lib/api.ts</span> — attaches your login token, calls the backend over HTTP</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🚪</div>
+      <div class="bigtext"><div class="bigtitle">The backend checks who you are</div><div class="bigdesc"><span class="mono">POST /api/query</span> — confirms your login, then checks your role is allowed to search</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🧭</div>
+      <div class="bigtext"><div class="bigtitle">An AI agent plans the search <span class="apitag openai">OpenAI · gpt-4o-mini</span></div><div class="bigdesc">A real API call, using your OpenAI key — decides how many results to fetch and the best phrase to search for, before anything is searched</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🔍</div>
+      <div class="bigtext"><div class="bigtitle">The database is searched two ways at once</div><div class="bigdesc">
+        <span class="apitag openai">OpenAI · text-embedding-3-small</span> matches by the <b>meaning of words</b> (transcripts, OCR'd slide text, quiz text, discussion posts)<br>
+        <span class="apitag local">Local model · CLIP ViT-B/32 — no API key used</span> matches by <b>what an image actually looks like</b>, pixels only<br>
+        Results from both are then combined into one list.
+      </div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">📊</div>
+      <div class="bigtext"><div class="bigtitle">Results are reordered for fairness <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">So one modality (like video) can't crowd out a relevant forum post or quiz question</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">✍️</div>
+      <div class="bigtext"><div class="bigtitle">An AI writes the answer <span class="apitag openai">OpenAI · gpt-4o-mini</span></div><div class="bigdesc">A second real API call — using only that retrieved evidence, never the whole database, and citing exactly where each claim came from</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🛡️</div>
+      <div class="bigtext"><div class="bigtitle">A second check runs <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">Not an AI — a rule that removes any citation that doesn't actually match retrieved evidence, before a human ever sees it</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Everything is saved</div><div class="bigdesc">The question, the evidence links, the answer, and a permanent record of the action — all in Postgres</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">📱</div>
+      <div class="bigtext"><div class="bigtitle">You see the answer</div><div class="bigdesc">Back in the browser — the plan, the cited evidence, and the confidence score, all visible</div></div>
+    </div>
+  </div>
+
+  <div class="flow-frame" style="margin-top:22px;">
+    <div class="flow">
+      <div class="flow-step"><div class="title">Any other action</div><div class="desc">register an asset, review a recommendation, check metrics…</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">Same 3 first steps</div><div class="desc">Browser → API client → backend route (auth + role check)</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">A simpler middle</div><div class="desc">One service function, no AI agents needed</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">Same last 2 steps</div><div class="desc">Saved to Postgres → shown back in the browser</div></div>
+    </div>
+    <p class="flow-caption">The Query Workspace is the longest path through the system — everything else is a shorter version of this same shape.</p>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">The Other Half Of The System</div>
+  <h2 class="section-title">Before anything is searchable — the Intake flow</h2>
+  <p class="lede">A question can only be answered from evidence that's already been through this flow. This is what happens between someone uploading a video and that video's content showing up in a search result.</p>
+
+  <div class="bigflow">
+    <div class="bigstep">
+      <div class="bigicon">📤</div>
+      <div class="bigtext"><div class="bigtitle">You register an asset</div><div class="bigdesc">Asset Intake page → <span class="mono">POST /api/assets</span> — modality, owner, and where the file lives</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🔁</div>
+      <div class="bigtext"><div class="bigtitle">The backend checks for a duplicate <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">Same owner + modality + file already registered? Reuse it instead of creating a copy</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Saved, stage "uploaded"</div><div class="bigdesc">A new <span class="mono">Asset</span> row and a <span class="mono">ProcessingJob</span> row are written — nothing processed yet</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">⚙️</div>
+      <div class="bigtext"><div class="bigtitle">You start processing</div><div class="bigdesc"><span class="mono">POST /api/processing-jobs</span> — this is where the real work happens, all in one call</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🔀</div>
+      <div class="bigtext"><div class="bigtitle">The right tool runs, based on modality</div><div class="bigdesc">
+        🎬 Video → ffmpeg (local) pulls frames, then <span class="apitag openai">OpenAI · Whisper</span> transcribes the speech<br>
+        🖼️ Image → tesseract OCR <span class="apitag local">local</span> reads any text, <span class="apitag local">CLIP</span> looks at the picture itself<br>
+        📑 Slide (PDF) → PyMuPDF <span class="apitag local">local</span> pulls the text out directly<br>
+        ✅💬 Quiz / Discussion → cleaned and de-duplicated <span class="apitag code">local code</span>
+      </div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🧮</div>
+      <div class="bigtext"><div class="bigtitle">Everything gets turned into numbers</div><div class="bigdesc"><span class="apitag openai">OpenAI · text-embedding-3-small</span> embeds the text; images additionally get a <span class="apitag local">local CLIP</span> embedding of the actual picture</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Saved as Segment rows</div><div class="bigdesc">Each one stamped with the job that created it — this link is what lets the system track lifecycle stages correctly later</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">✅</div>
+      <div class="bigtext"><div class="bigtitle">Job reaches "searchable"</div><div class="bigdesc">From this moment on, this asset's content is part of every future cross-modal query</div></div>
+    </div>
+  </div>
+
+  <div class="flow-frame" style="margin-top:22px;">
+    <div class="flow">
+      <div class="flow-step"><div class="title">No system binary?</div><div class="desc">ffmpeg / tesseract missing on PATH</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="title">Job fails visibly</div><div class="desc">Stage → "failed", with a plain-English error saved — never silently skipped</div></div>
+    </div>
+    <p class="flow-caption">This is a deliberate design choice: an asset that can't actually be processed should never look "done" in the dashboard.</p>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">Architecture, One Layer at a Time</div>
+  <h2 class="section-title">Every request's journey, top to bottom</h2>
+  <p class="lede">A click in the browser passes through five layers before data comes back. Every layer in this diagram is a real folder in the repo.</p>
+
+  <div class="flow-frame">
+    <div class="flow">
+      <div class="flow-step accent"><div class="title">frontend/app/*/page.tsx</div><div class="desc">React page, calls lib/api.ts</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="title">frontend/lib/api.ts</div><div class="desc">fetch() + Bearer JWT</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">backend/app/api/*.py</div><div class="desc">FastAPI route — auth + RBAC</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">backend/app/services/*.py</div><div class="desc">orchestration logic</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="title">ai/ · pipelines/</div><div class="desc">embeddings, retrieval, LLM calls</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">Postgres (Supabase)</div><div class="desc">backend/app/database/models.py</div></div>
+    </div>
+    <p class="flow-caption">Every route file in backend/app/api/ follows this exact shape — thin route → service function → ai/pipelines call → DB write.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Layer</th><th>Folder</th><th>What lives here</th></tr></thead>
+      <tbody>
+        <tr><td>Pages</td><td class="mono">frontend/app/</td><td>One folder per route — <span class="mono">assets/</span>, <span class="mono">query/</span>, <span class="mono">processing/</span>, etc.</td></tr>
+        <tr><td>API client</td><td class="mono">frontend/lib/api.ts</td><td>One typed function per backend endpoint. Every page imports from here — never calls <span class="mono">fetch()</span> directly.</td></tr>
+        <tr><td>Routes</td><td class="mono">backend/app/api/</td><td>FastAPI routers. Each file = one resource (<span class="mono">assets.py</span>, <span class="mono">query.py</span>, …). Auth + RBAC dependency injected here.</td></tr>
+        <tr><td>Auth</td><td class="mono">backend/app/auth/dependencies.py</td><td>JWT verification (<span class="mono">get_current_user</span>) + role→permission map (<span class="mono">require_role_permission</span>).</td></tr>
+        <tr><td>Services</td><td class="mono">backend/app/services/</td><td>The actual orchestration — what a route does, decoupled from HTTP concerns.</td></tr>
+        <tr><td>Agents</td><td class="mono">ai/agents/</td><td>Retrieval Planner, Evidence Ranker, Quality Validator — see Stage 4–6.</td></tr>
+        <tr><td>AI logic</td><td class="mono">ai/</td><td>Embeddings (text + CLIP), retrieval, synthesis prompts.</td></tr>
+        <tr><td>Media pipelines</td><td class="mono">pipelines/</td><td>ffmpeg (video), tesseract (OCR), PyMuPDF (slides), text cleaning.</td></tr>
+        <tr><td>Data model</td><td class="mono">backend/app/database/models.py</td><td>Every SQLAlchemy table — <span class="mono">Asset, ProcessingJob, Segment, Query, Insight, ReviewFeedback, AuditLog</span>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STAGE 1: ASSETS -->
+<div class="stage">
+  <div class="stage-num">1</div>
+  <div class="stage-label">POST /api/assets</div>
+  <h3 class="stage-title">Register an asset</h3>
+  <p class="stage-lede">Called from the Asset Intake page. Creates an <span class="mono">Asset</span> row and a <span class="mono">ProcessingJob</span> row at stage <span class="mono">uploaded</span> — nothing is processed yet.</p>
+
+  <div class="endpoint"><span class="method post">POST</span><span class="path">/api/assets</span></div>
+  <div class="callchain">
+    <span class="filepath">frontend/app/assets/page.tsx</span> <span class="arrow">→</span> <span class="fn">createAsset()</span> <span class="file">in lib/api.ts</span><br>
+    <span class="arrow">→</span> <span class="fn">create_asset()</span> <span class="file">backend/app/api/assets.py</span><br>
+    <span class="arrow">→</span> <span class="fn">register_asset()</span> <span class="file">backend/app/services/asset_service.py</span> — checks <span class="fn">find_duplicate()</span> first<br>
+    <span class="arrow">→</span> <span class="fn">create_job()</span> <span class="file">backend/app/jobs/job_queue.py</span><br>
+    <span class="arrow">→</span> <span class="fn">log_action()</span> <span class="file">backend/app/services/audit_service.py</span>
+  </div>
+
+  <div class="two-col">
+    <div class="codeblock"><span class="lbl">Request body</span>{
+  "modality": "transcript",
+  "owner": "content-team@coursera.org",
+  "topic": "Backpropagation",
+  "concept_tags": ["neural-networks"],
+  "storage_url": "data/sample_assets/course_neural_networks/transcript.json",
+  "permission_scope": ["course:neural-networks-101"]
+}</div>
+    <div class="codeblock"><span class="lbl">Real response (this session)</span>{
+  "asset_id": "2aee0141-a02e-463c-b0af-f11817ed7831",
+  "job_id": "3ee7a667-ab06-49ac-a4c9-fe63509e2fc3",
+  "status": "uploaded",
+  "duplicate": false
+}</div>
+  </div>
+
+  <div class="datasink">Writes to: <span class="tbl">assets</span> <span class="tbl">processing_jobs</span> <span class="tbl">audit_log</span></div>
+  <p class="stage-lede"><b style="color:var(--ink)">RBAC:</b> requires the <span class="mono">assets:write</span> permission — <span class="mono">content-team</span> or <span class="mono">admin</span> roles only.</p>
+</div>
+
+<!-- STAGE 2: PROCESSING -->
+<div class="stage">
+  <div class="stage-num">2</div>
+  <div class="stage-label">POST /api/processing-jobs</div>
+  <h3 class="stage-title">Run the pipeline — this is where the real work happens</h3>
+  <p class="stage-lede">The single biggest function in the codebase. Resolves the file, routes to the right modality-specific pipeline, normalizes the output, embeds it (text + CLIP for images), and advances the job through five stages in one synchronous call.</p>
+
+  <div class="endpoint"><span class="method post">POST</span><span class="path">/api/processing-jobs</span></div>
+  <div class="callchain">
+    <span class="fn">start_processing_job()</span> <span class="file">backend/app/api/processing_jobs.py</span><br>
+    <span class="arrow">→</span> <span class="fn">run_processing_job()</span> <span class="file">backend/app/services/processing_service.py</span><br>
+    <span class="arrow">→</span> <span class="fn">get_storage_backend().resolve()</span> <span class="file">storage_service.py</span> — finds the real file<br>
+    <span class="arrow">→</span> modality routing:
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Modality</th><th>Pipeline function called</th><th>Needs</th></tr></thead>
+      <tbody>
+        <tr><td>video</td><td class="mono">pipelines/video_processing/extract.py :: process_video()</td><td>ffmpeg + Whisper API</td></tr>
+        <tr><td>image</td><td class="mono">pipelines/image_processing/extract.py :: process_image()</td><td>tesseract OCR + <span class="mono">ai/embeddings/clip_embed.py</span></td></tr>
+        <tr><td>slide (PDF)</td><td class="mono">pipelines/image_processing/extract.py :: extract_slide_text()</td><td>PyMuPDF only</td></tr>
+        <tr><td>quiz</td><td class="mono">pipelines/text_processing/clean.py :: process_quiz()</td><td>none</td></tr>
+        <tr><td>discussion</td><td class="mono">pipelines/text_processing/clean.py :: process_discussion_thread()</td><td>none</td></tr>
+        <tr><td>transcript</td><td>already normalized JSON — passed straight through</td><td>none</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callchain">
+    <span class="arrow">→</span> <span class="fn">normalize_raw_units()</span> <span class="file">ai/preprocessing/normalize.py</span> — one consistent shape for every modality<br>
+    <span class="arrow">→</span> <span class="fn">embed_segment()</span> <span class="file">ai/embeddings/embed.py</span> — OpenAI <span class="mono">text-embedding-3-small</span>, 1536-dim<br>
+    <span class="arrow">→</span> (images only) <span class="fn">embed_image()</span> <span class="file">ai/embeddings/clip_embed.py</span> — local CLIP ViT-B/32, 512-dim<br>
+    <span class="arrow">→</span> writes one <span class="mono">Segment</span> row per unit, stamped with <span class="mono">job_id</span><br>
+    <span class="arrow">→</span> <span class="fn">advance_job()</span> ×4 <span class="file">app/jobs/job_queue.py</span> — preprocessed → embedded → indexed → searchable
+  </div>
+
+  <div class="codeblock"><span class="lbl">Real response (this session)</span>{
+  "job_id": "fcf12151-b0e0-4c52-b089-269676193e0e",
+  "asset_id": "8ff9f4ec-c447-4342-85df-830be010caf6",
+  "stage": "searchable",
+  "error": null
+}</div>
+
+  <div class="datasink">Writes to: <span class="tbl">segments</span> (embedding + image_embedding columns) <span class="tbl">processing_jobs</span> (stage updates) <span class="tbl">audit_log</span></div>
+  <p class="stage-lede"><b style="color:var(--ink)">Fails visibly:</b> if ffmpeg/tesseract aren't on PATH, or the file doesn't resolve, the job goes straight to stage <span class="mono">failed</span> with a human-readable <span class="mono">error</span> string — never silently skipped.</p>
+</div>
+
+<!-- STAGE 3: QUERY -->
+<div class="stage">
+  <div class="stage-num">3</div>
+  <div class="stage-label">POST /api/query</div>
+  <h3 class="stage-title">Ask a question — the agent pipeline kicks in</h3>
+  <p class="stage-lede">Not a single search call. A planner agent decides strategy first, retrieval runs two independent searches (text-meaning + CLIP visual), then a ranker agent re-orders for cross-modal diversity.</p>
+
+  <div class="endpoint"><span class="method post">POST</span><span class="path">/api/query</span></div>
+  <div class="callchain">
+    <span class="filepath">frontend/app/query/page.tsx</span> <span class="arrow">→</span> <span class="fn">runQuery()</span> <span class="file">lib/api.ts</span><br>
+    <span class="arrow">→</span> <span class="fn">submit_query()</span> <span class="file">backend/app/api/query.py</span><br>
+    <span class="arrow">→</span> <span class="fn">run_query()</span> <span class="file">backend/app/services/retrieval_service.py</span><br>
+    <span class="arrow">→</span> <span class="fn">plan()</span> <span class="file">ai/agents/retrieval_planner.py</span> — real GPT-4o-mini call, decides <span class="mono">top_k</span> + search terms<br>
+    <span class="arrow">→</span> <span class="fn">retrieve()</span> <span class="file">ai/retrieval/retriever.py</span> — runs <span class="fn">_text_channel()</span> + <span class="fn">_visual_channel()</span> in parallel, merges by segment_id<br>
+    <span class="arrow">→</span> <span class="fn">rank()</span> <span class="file">ai/agents/evidence_ranker.py</span> — diversity-aware re-order, then sliced to <span class="mono">top_k</span><br>
+    <span class="arrow">→</span> <span class="fn">mark_segments_retrieved()</span> <span class="file">lifecycle_service.py</span> — advances each cited job's stage
+  </div>
+
+  <div class="two-col">
+    <div class="codeblock"><span class="lbl">Request body</span>{
+  "question_text": "Why are learners
+    struggling with backpropagation?",
+  "top_k": 5
+}</div>
+    <div class="codeblock"><span class="lbl">Real response (truncated)</span>{
+  "query_id": "f1b9197e-...",
+  "retrieved_evidence": [{
+    "segment_id": "7bb20790-...",
+    "modality": "transcript",
+    "text_content": "Today we're
+      covering backpropagation...",
+    "similarity": 0.635,
+    "match_type": "text"
+  }],
+  "agent_plan": {
+    "search_terms": "learners struggling
+      backpropagation concept",
+    "top_k": 10,
+    "reasoning": "The question is
+      moderately specific..."
+  }
+}</div>
+  </div>
+
+  <div class="datasink">Writes to: <span class="tbl">queries</span> (the question itself) <span class="tbl">processing_jobs</span> (stage → retrieved) <span class="tbl">audit_log</span></div>
+  <p class="stage-lede"><b style="color:var(--ink)">RBAC:</b> requires <span class="mono">query:run</span> — <span class="mono">educator</span>, <span class="mono">reviewer</span>, or <span class="mono">admin</span>.</p>
+</div>
+
+<!-- STAGE 4: SYNTHESIZE -->
+<div class="stage">
+  <div class="stage-num">4</div>
+  <div class="stage-label">POST /api/synthesize</div>
+  <h3 class="stage-title">Turn evidence into a grounded answer</h3>
+  <p class="stage-lede">The LLM only ever sees the evidence array from the previous call — never the full database. A validator agent then checks its own output before anything is saved.</p>
+
+  <div class="endpoint"><span class="method post">POST</span><span class="path">/api/synthesize</span></div>
+  <div class="callchain">
+    <span class="fn">synthesize_endpoint()</span> <span class="file">backend/app/api/synthesize.py</span><br>
+    <span class="arrow">→</span> <span class="fn">synthesize_insight()</span> <span class="file">backend/app/services/synthesis_service.py</span><br>
+    <span class="arrow">→</span> <span class="fn">synthesize()</span> <span class="file">ai/synthesis/synthesizer.py</span> — GPT-4o-mini, <span class="mono">response_format: json_object</span>, prompt built by <span class="mono">ai/prompts/synthesis_prompt.py</span><br>
+    <span class="arrow">→</span> <span class="fn">validate()</span> <span class="file">ai/agents/quality_validator.py</span> — calls <span class="fn">score_groundedness()</span> from <span class="mono">ai/evaluation/evaluate.py</span>; strips any citation not in the retrieved set, caps confidence at 0.3 if it had to<br>
+    <span class="arrow">→</span> <span class="fn">mark_segments_synthesized()</span> <span class="file">lifecycle_service.py</span><br>
+    <span class="arrow">→</span> writes one <span class="mono">Insight</span> row, <span class="mono">status="pending_review"</span>
+  </div>
+
+  <div class="codeblock"><span class="lbl">Real response (this session)</span>{
+  "insight_id": "734c1880-758f-4313-8ffd-8c9dd41a3ed4",
+  "answer_text": "Backpropagation is a fundamental algorithm used in training neural networks, enabling them to adjust their parameters based on the errors made in predictions...",
+  "citations": [{
+    "segment_id": "c0b40e50-fe02-4b7d-a616-8b24b5bb53c0",
+    "reason": "This segment directly states that the topic of discussion is backpropagation..."
+  }],
+  "confidence": 1.0,
+  "status": "pending_review"
+}</div>
+
+  <div class="datasink">Writes to: <span class="tbl">insights</span> <span class="tbl">processing_jobs</span> (stage → synthesized) <span class="tbl">audit_log</span></div>
+</div>
+
+<!-- STAGE 5: REVIEW -->
+<div class="stage">
+  <div class="stage-num">5</div>
+  <div class="stage-label">POST /api/review-feedback</div>
+  <h3 class="stage-title">A human closes the loop</h3>
+  <p class="stage-lede">The only endpoint that changes an insight's status from pending to something operational — and the only one gated to the <span class="mono">reviewer</span> role specifically.</p>
+
+  <div class="endpoint"><span class="method post">POST</span><span class="path">/api/review-feedback</span></div>
+  <div class="callchain">
+    <span class="filepath">frontend/app/recommendations/page.tsx</span> <span class="arrow">→</span> <span class="fn">submitReviewFeedback()</span><br>
+    <span class="arrow">→</span> <span class="fn">submit_review_feedback()</span> <span class="file">backend/app/api/review_feedback.py</span> — <span class="mono">require_role_permission("review:write")</span><br>
+    <span class="arrow">→</span> <span class="fn">submit_feedback()</span> <span class="file">backend/app/services/review_service.py</span> — writes <span class="mono">ReviewFeedback</span>, flips <span class="mono">Insight.status</span><br>
+    <span class="arrow">→</span> <span class="fn">mark_segments_reviewed()</span> <span class="file">lifecycle_service.py</span> — every asset cited by this insight reaches its final tracked stage
+  </div>
+
+  <div class="codeblock"><span class="lbl">Real response (this session)</span>{
+  "feedback_id": "bdf0500e-1699-45ed-bcd7-380197e31060",
+  "insight_id": "8662ffd8-7b72-4be6-bc85-84d51bb6c9a5",
+  "decision": "accept"
+}</div>
+
+  <div class="datasink">Writes to: <span class="tbl">review_feedback</span> <span class="tbl">insights</span> (status) <span class="tbl">processing_jobs</span> (stage → reviewed) <span class="tbl">audit_log</span></div>
+</div>
+
+<!-- STAGE 6: DASHBOARDS -->
+<div class="stage">
+  <div class="stage-num">6</div>
+  <div class="stage-label">GET /api/metrics · GET /api/audit-log</div>
+  <h3 class="stage-title">Reading it all back out</h3>
+  <p class="stage-lede">Two read-only endpoints power every dashboard. Neither has its own table — both aggregate live from the tables every other endpoint already wrote to.</p>
+
+  <div class="endpoint"><span class="method get">GET</span><span class="path">/api/metrics</span></div>
+  <div class="callchain">
+    <span class="fn">get_metrics()</span> <span class="file">backend/app/api/metrics.py</span> <span class="arrow">→</span> <span class="fn">compute_metrics()</span> <span class="file">backend/app/services/metrics_service.py</span> — <span class="mono">COUNT()</span> queries across <span class="mono">processing_jobs</span>, <span class="mono">review_feedback</span>, <span class="mono">assets</span>, <span class="mono">segments</span>, <span class="mono">insights</span>
+  </div>
+  <div class="codeblock"><span class="lbl">Real response (this session)</span>{
+  "pipeline_health": {"uploaded": 15, "indexed": 3, "searchable": 0, "retrieved": 1, "failed": 1},
+  "review_outcomes": {"accept": 5},
+  "total_assets": 42, "total_segments_indexed": 76,
+  "total_jobs": 20, "failed_jobs": 1,
+  "total_insights": 15, "pending_review": 10
+}</div>
+
+  <div class="endpoint"><span class="method get">GET</span><span class="path">/api/audit-log</span></div>
+  <div class="callchain">
+    <span class="fn">get_audit_log()</span> <span class="file">backend/app/api/audit_log.py</span> <span class="arrow">→</span> <span class="fn">list_recent()</span> <span class="file">backend/app/services/audit_service.py</span> — every <span class="fn">log_action()</span> call from every route above, newest first
+  </div>
+  <p class="stage-lede"><b style="color:var(--ink)">RBAC:</b> both require <span class="mono">metrics:read</span> / <span class="mono">audit:read</span> — <span class="mono">analyst</span> or <span class="mono">admin</span> roles.</p>
+</div>
+
+<section>
+  <div class="kicker">All 9 Endpoints, One Table</div>
+  <h2 class="section-title">Quick reference</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Route file</th><th>Service called</th><th>RBAC permission</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">POST /api/assets</td><td class="mono">api/assets.py</td><td class="mono">asset_service.register_asset</td><td class="mono">assets:write</td></tr>
+        <tr><td class="mono">POST /api/processing-jobs</td><td class="mono">api/processing_jobs.py</td><td class="mono">processing_service.run_processing_job</td><td class="mono">processing:write</td></tr>
+        <tr><td class="mono">GET /api/processing-jobs/{id}</td><td class="mono">api/processing_jobs.py</td><td class="mono">job_queue.get_job</td><td class="mono">processing:write</td></tr>
+        <tr><td class="mono">POST /api/processing-jobs/{id}/archive</td><td class="mono">api/processing_jobs.py</td><td class="mono">job_queue.advance_job</td><td class="mono">processing:write</td></tr>
+        <tr><td class="mono">POST /api/embeddings</td><td class="mono">api/embeddings.py</td><td class="mono">embedding_service.refresh_embeddings</td><td class="mono">processing:write</td></tr>
+        <tr><td class="mono">POST /api/query</td><td class="mono">api/query.py</td><td class="mono">retrieval_service.run_query</td><td class="mono">query:run</td></tr>
+        <tr><td class="mono">POST /api/synthesize</td><td class="mono">api/synthesize.py</td><td class="mono">synthesis_service.synthesize_insight</td><td class="mono">query:run</td></tr>
+        <tr><td class="mono">GET /api/insights/{id}</td><td class="mono">api/insights.py</td><td class="mono">synthesis_service.get_insight</td><td class="mono">insights:read</td></tr>
+        <tr><td class="mono">POST /api/review-feedback</td><td class="mono">api/review_feedback.py</td><td class="mono">review_service.submit_feedback</td><td class="mono">review:write</td></tr>
+        <tr><td class="mono">GET /api/metrics</td><td class="mono">api/metrics.py</td><td class="mono">metrics_service.compute_metrics</td><td class="mono">metrics:read</td></tr>
+        <tr><td class="mono">GET /api/audit-log</td><td class="mono">api/audit_log.py</td><td class="mono">audit_service.list_recent</td><td class="mono">audit:read</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">The Data Model</div>
+  <h2 class="section-title">Every table, and who writes to it</h2>
+  <p class="lede">Defined in one file: <span class="filepath">backend/app/database/models.py</span>. Native Postgres UUIDs, pgvector for the two embedding columns.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Table</th><th>Key columns</th><th>Written by</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">assets</td><td class="mono">modality, owner, storage_url, permission_scope</td><td>Stage 1</td></tr>
+        <tr><td class="mono">processing_jobs</td><td class="mono">stage (9-value enum), error</td><td>Stages 1–5 (every stage transition)</td></tr>
+        <tr><td class="mono">segments</td><td class="mono">text_content, embedding(1536), image_embedding(512), job_id</td><td>Stage 2</td></tr>
+        <tr><td class="mono">queries</td><td class="mono">user_id, question_text</td><td>Stage 3</td></tr>
+        <tr><td class="mono">insights</td><td class="mono">answer_text, citations, confidence, status</td><td>Stage 4, updated by Stage 5</td></tr>
+        <tr><td class="mono">review_feedback</td><td class="mono">insight_id, reviewer_id, decision, notes</td><td>Stage 5</td></tr>
+        <tr><td class="mono">audit_log</td><td class="mono">actor, action, resource_type, resource_id, details</td><td>Every mutating endpoint</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">Reference</div>
+  <h2 class="section-title">Terms an onboarding engineer will hit fast</h2>
+  <div class="glossary">
+    <div class="gterm"><div class="term">match_type</div><div class="def">On each evidence item — "text" (OpenAI text-embedding match) or "visual" (CLIP image match). See ai/retrieval/retriever.py.</div></div>
+    <div class="gterm"><div class="term">JobStage progression</div><div class="def">An ordered list in models.py (JOB_STAGE_PROGRESSION) — lifecycle_service only ever moves a job forward along it, never backward.</div></div>
+    <div class="gterm"><div class="term">CurrentUser</div><div class="def">Decoded JWT payload — auth/dependencies.py. Carries user_id, roles[], permitted_sources[].</div></div>
+    <div class="gterm"><div class="term">permitted_sources</div><div class="def">Course/asset-level access list on the JWT — checked inside retriever.py before evidence ever reaches synthesis. Separate concept from RBAC roles.</div></div>
+    <div class="gterm"><div class="term">StorageBackend</div><div class="def">Interface in storage_service.py. LocalFilesystemStorage is what's live; S3CompatibleStorage exists but needs OBJECT_STORAGE_URL/KEY, unset in this env.</div></div>
+    <div class="gterm"><div class="term">requires_db fixture</div><div class="def">tests/conftest.py — skips a test if TEST_DATABASE_URL isn't set, since Segment's Vector columns have no sqlite equivalent.</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">Running It Locally</div>
+  <h2 class="section-title">Minimum commands to get from clone to a live query</h2>
+  <div class="codeblock"><span class="lbl">Backend (from repo root)</span>cd backend
+python -m uvicorn app.main:app --reload --port 8000
+# creates missing tables + columns on startup (see database/connection.py)
+
+python scripts/mint_dev_token.py --user you --roles admin --permitted "*"
+# copy the token into frontend/.env.local as NEXT_PUBLIC_DEV_TOKEN</div>
+  <div class="codeblock"><span class="lbl">Frontend</span>cd frontend
+npm install
+npm run dev   # http://localhost:3000</div>
+  <div class="codeblock"><span class="lbl">Seed real sample data (optional)</span>python data/scripts/fetch_datasets.py   # pulls real data from Hugging Face
+python data/scripts/seed_and_demo.py    # registers + embeds + runs a demo query</div>
+</section>
+
+<footer>
+  Codebase walkthrough — every file path, function name, and JSON example above is copied from the real repository and a real run of the system, not illustrative pseudocode.
+</footer>
+
+</div>
+</body>
+</html>
