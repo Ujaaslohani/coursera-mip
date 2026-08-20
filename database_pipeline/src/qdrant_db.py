@@ -98,8 +98,8 @@ def clean_payload_value(value: Any) -> Any:
 
     if hasattr(value, "item"):
         return value.item()
-
-    return str(value)
+    
+    return str(value).strip() 
 
 # ------------------------------------------------------------------------------
 ## loading database records indexed by record_id
