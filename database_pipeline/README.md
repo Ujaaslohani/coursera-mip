@@ -1,0 +1,994 @@
+# COURSEERA ALMAX Multimodal Database Pipeline
+
+## 1. Project Overview
+
+The COURSEERA ALMAX database pipeline prepares multimodal educational content for semantic retrieval and Retrieval-Augmented Generation (RAG).
+
+The platform combines information from five content types:
+
+1. Caption chunks representing the instructor’s spoken explanation
+2. Lecture slides containing textual and visual instructional content
+3. Caption-linked video frames showing what appeared during an explanation
+4. Quiz questions connected to their supporting lecture content
+5. Discussion records representing learner feedback, confusion and recurring themes
+
+Each record is converted into a 768-dimensional embedding and stored with its metadata in one centralised Qdrant collection.
+
+The centralised design allows the backend to retrieve related captions, slides, frames, quizzes and discussions through a single semantic-search interface.
+
+---
+
+## 2. Pipeline Objectives
+
+The database pipeline is designed to:
+
+- Discover and organise course assets
+- Validate videos, captions, transcripts and slide files
+- Convert unstructured content into structured database records
+- Preserve lecture, timestamp, slide and source references
+- Analyse slide and frame images using a multimodal model
+- Connect caption-linked frames with spoken explanations
+- Connect quizzes and discussions with supporting caption chunks
+- Generate consistent text embeddings across all content types
+- Upload vectors and metadata into one Qdrant collection
+- Validate record counts, identifiers, payloads and relationships
+- Provide a searchable database for backend and RAG applications
+
+---
+
+## 3. High-Level Data Flow
+
+```text
+Raw course assets
+        │
+        ├── Videos
+        ├── WebVTT captions
+        ├── Transcript PDFs
+        ├── Slide PDFs
+        ├── Quiz data
+        └── Discussion data
+        │
+        ▼
+Discovery and validation
+        │
+        ▼
+Content extraction and preprocessing
+        │
+        ├── Caption chunking
+        ├── Transcript extraction
+        ├── Slide-image extraction
+        └── Caption-linked frame extraction
+        │
+        ▼
+Gemini visual analysis
+        │
+        ├── Slide analysis
+        └── Frame analysis
+        │
+        ▼
+Structured databases
+        │
+        ├── Caption database
+        ├── Slide database
+        ├── Frame database
+        ├── Quiz database
+        └── Discussion database
+        │
+        ▼
+BGE embedding generation
+        │
+        ▼
+Centralised Qdrant collection
+        │
+        ▼
+Backend retrieval and RAG
+```
+
+---
+
+## 4. Repository Structure
+
+```text
+database_pipeline/
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── discovery.py
+│   ├── extraction.py
+│   ├── frame_audit.py
+│   ├── visual_analysis.py
+│   ├── visual_database.py
+│   ├── databases.py
+│   ├── quiz_db.py
+│   ├── discussion_db.py
+│   ├── embeddings.py
+│   ├── quiz_discussion_embedding.py
+│   ├── qdrant_db.py
+│   ├── quiz_discussion_qdrant.py
+│   ├── validation.py
+│   └── pipeline.py
+│
+├── requirements.txt
+└── README.md
+```
+
+### Module Responsibilities
+
+| Module | Responsibility |
+|---|---|
+| `config.py` | Defines project paths and shared configuration |
+| `discovery.py` | Discovers source assets and creates the inventory |
+| `extraction.py` | Extracts and preprocesses course content |
+| `frame_audit.py` | Extracts representative caption-linked video frames |
+| `visual_analysis.py` | Analyses slides and frames using Gemini |
+| `visual_database.py` | Creates structured slide and frame records |
+| `databases.py` | Creates the caption database |
+| `quiz_db.py` | Creates or prepares quiz records |
+| `discussion_db.py` | Creates or prepares discussion records |
+| `embeddings.py` | Generates caption, slide and frame embeddings |
+| `quiz_discussion_embedding.py` | Generates quiz and discussion embeddings |
+| `qdrant_db.py` | Uploads caption, slide and frame points |
+| `quiz_discussion_qdrant.py` | Integrates quiz and discussion points |
+| `validation.py` | Validates databases, embeddings and outputs |
+| `pipeline.py` | Coordinates major pipeline stages |
+
+The repository contains pipeline code only. Raw files and generated outputs are stored locally or in approved shared storage.
+
+---
+
+## 5. Local Data Structure
+
+The complete local project may use the following structure:
+
+```text
+COURSEERA_ALMAX/
+├── raw/
+│   ├── videos/
+│   ├── captions/
+│   ├── transcripts/
+│   ├── slides/
+│   ├── quizzes/
+│   └── discussions/
+│
+├── processed/
+│   ├── inventories/
+│   ├── transcripts/
+│   ├── slide_images/
+│   ├── frame_audit/
+│   ├── visual_analysis/
+│   ├── databases/
+│   └── embeddings/
+│
+├── src/
+├── .env
+└── requirements.txt
+```
+
+Folder names may differ according to the paths defined in `src/config.py`.
+
+---
+
+## 6. Prerequisites
+
+Recommended environment:
+
+```text
+Python: 3.10 or later
+Operating system: Windows, Linux or macOS
+Vector database: Qdrant Cloud or local Qdrant
+Embedding model: BAAI/bge-base-en-v1.5
+```
+
+The computer should have enough storage for lecture videos, PDFs, extracted slide images, frames and embedding files.
+
+---
+
+## 7. Installation
+
+### 7.1 Clone the Repository
+
+```powershell
+git clone <repository-url>
+cd coursera-mip
+```
+
+### 7.2 Create a Virtual Environment
+
+From the repository root:
+
+```powershell
+python -m venv .venv
+```
+
+Activate it on Windows:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Activate it on Linux or macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### 7.3 Install Dependencies
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r database_pipeline\requirements.txt
+```
+
+Check the installed packages:
+
+```powershell
+pip check
+```
+
+---
+
+## 8. Environment Variables
+
+Create a local `.env` file containing the required credentials.
+
+```env
+QDRANT_URL=
+QDRANT_API_KEY=
+GEMINI_API_KEY=
+```
+
+Verify the exact Gemini variable name used in `visual_analysis.py`. If the code uses another name, use that name in `.env`.
+
+### Environment-Variable Purpose
+
+| Variable | Purpose |
+|---|---|
+| `QDRANT_URL` | Qdrant Cloud cluster endpoint |
+| `QDRANT_API_KEY` | Authorised key for accessing Qdrant |
+| `GEMINI_API_KEY` | Key used for slide and frame visual analysis |
+
+Never commit `.env` or paste API keys into documentation, screenshots, chat messages or source code.
+
+---
+
+## 9. Required Input Files
+
+| Content | Format | Purpose |
+|---|---|---|
+| Lecture video | `.mp4` | Video metadata and frame extraction |
+| Captions | `.vtt` | Timestamped instructor speech |
+| Transcript | `.pdf` | Transcript validation and extraction |
+| Lecture slides | `.pdf` | Slide-image extraction and visual analysis |
+| Quiz records | `.csv` or source JSON | Assessment database |
+| Discussion records | `.csv` or source JSON | Learner-discussion database |
+
+The source assets must use consistent lecture identifiers, such as:
+
+```text
+lec01
+lec02
+lec03
+```
+
+Lecture 22 was unavailable in the current source course package and was therefore excluded from the validated quiz and discussion integration.
+
+---
+
+## 10. Source Discovery and Validation
+
+The discovery stage:
+
+- Scans source directories
+- Identifies available lecture assets
+- Maps videos, captions, transcripts and slides to lectures
+- Detects missing or unmatched files
+- Records file locations and processing status
+- Produces a structured asset inventory
+
+Validation should occur before expensive extraction or model calls.
+
+Important checks include:
+
+- File existence
+- Correct file extension
+- Valid lecture mapping
+- Video readability
+- Caption readability
+- PDF readability
+- Missing source assets
+- Duplicate identifiers
+
+---
+
+## 11. Caption Processing
+
+WebVTT caption files contain timestamped spoken text.
+
+Caption processing:
+
+1. Parses individual WebVTT caption segments
+2. Preserves starting and ending timestamps
+3. Groups related segments into meaningful chunks
+4. Calculates chunk duration and word count
+5. Assigns a unique `chunk_id`
+6. Stores the processed content in the caption database
+
+Example chunk identifier:
+
+```text
+lec01_caption_chunk_01
+```
+
+The caption database represents what the instructor said during each lecture interval.
+
+---
+
+## 12. Slide Processing
+
+Slide PDFs are converted into individual images using PyMuPDF.
+
+Each slide record retains:
+
+- Lecture identifier
+- Slide number
+- Image filename
+- Image path
+- Image width
+- Image height
+- Image size
+- Extraction status
+
+The images are subsequently analysed using Gemini to extract:
+
+- Summary
+- Visible text
+- Visual type
+- Diagram explanation
+- Graph explanation
+- Equations
+- Key concepts
+- Visual–text relationship
+- Content category
+- Human-review flag
+- Instructional-evidence flag
+
+---
+
+## 13. Caption-Linked Frame Extraction
+
+Simple fixed-interval frame extraction was not used because lecture videos mainly displayed and explained presentation slides.
+
+Fixed-time extraction could capture:
+
+- Repeated slides
+- Slide transitions
+- Blank frames
+- Animations in progress
+- Frames unrelated to the spoken explanation
+
+Instead, one representative frame was selected using the midpoint of each caption chunk:
+
+```text
+Frame timestamp =
+(Caption start time + Caption end time) / 2
+```
+
+This creates a direct relationship between:
+
+```text
+Caption text → What the instructor said
+Frame image  → What the instructor displayed
+```
+
+Frame records use `primary_chunk_id` to retain this relationship.
+
+---
+
+## 14. Visual Analysis
+
+Gemini analyses both:
+
+- Extracted slide images
+- Caption-linked video frames
+
+The same structured analysis schema is used for both visual sources. The `source_type` field distinguishes them:
+
+```text
+source_type = slide
+source_type = frame
+```
+
+The structured visual descriptions are later converted into text embeddings.
+
+Images themselves are not directly embedded by the BGE model.
+
+```text
+Slide image
+→ Gemini textual analysis
+→ BGE embedding
+
+Video frame
+→ Gemini textual analysis
+→ BGE embedding
+```
+
+---
+
+## 15. Structured Databases
+
+The pipeline creates five structured databases.
+
+### 15.1 Caption Database
+
+Represents timestamped spoken explanations.
+
+Important fields include:
+
+```text
+record_id
+chunk_id
+course_id
+module_id
+lecture_id
+start_time
+end_time
+start_seconds
+end_seconds
+text
+word_count
+duration_seconds
+content_type
+```
+
+### 15.2 Slide Database
+
+Combines slide-image metadata with Gemini visual analysis.
+
+Important fields include:
+
+```text
+record_id
+lecture_id
+slide_no
+summary
+visual_types
+visual_text
+diagram_explanation
+graph_explanation
+equations
+key_concepts
+content_category
+needs_human_review
+is_instructional_evidence
+```
+
+### 15.3 Frame Database
+
+Combines frame-audit metadata with Gemini analysis.
+
+Important fields include:
+
+```text
+record_id
+frame_id
+lecture_id
+primary_chunk_id
+timestamp_seconds
+summary
+visual_types
+visual_text
+key_concepts
+content_category
+is_instructional_evidence
+```
+
+### 15.4 Quiz Database
+
+Represents assessment questions connected to supporting lecture content.
+
+Important fields include:
+
+```text
+record_id
+lecture_id
+quiz_id
+question_id
+question
+options
+correct_answer
+explanation
+topic
+difficulty_signals
+concept_tags
+assessment_location
+alignment_score
+question_type
+```
+
+### 15.5 Discussion Database
+
+Represents synthetic learner feedback and discussion signals.
+
+Important fields include:
+
+```text
+record_id
+lecture_id
+discussion_id
+thread_title
+post_text
+topic
+sentiment
+recurring_theme
+concept_tags
+friction_type
+severity
+chunk_ids
+timestamps
+source
+review_id
+```
+
+---
+
+## 16. Cross-Modal Relationships
+
+The five databases are logically connected through shared metadata:
+
+```text
+course_id
+module_id
+lecture_id
+```
+
+### Frame-to-Caption Relationship
+
+```text
+frame.primary_chunk_id
+=
+caption.chunk_id
+```
+
+This connects a displayed frame with the instructor’s spoken explanation.
+
+### Quiz-to-Caption Relationship
+
+```text
+quiz.linked_chunk_ids
+→ caption.chunk_id
+```
+
+This connects an assessment question with the lecture content supporting it.
+
+### Discussion-to-Caption Relationship
+
+```text
+discussion.linked_chunk_ids
+→ caption.chunk_id
+```
+
+This connects learner feedback or confusion with the relevant lecture explanation.
+
+Qdrant does not enforce these links as relational foreign keys. The backend uses payload metadata to retrieve and combine related records.
+
+---
+
+## 17. Data Integration Validation
+
+Before embedding generation, validation checks include:
+
+- Unique `record_id` values
+- No duplicate records
+- Required identifiers present
+- Valid lecture identifiers
+- Valid caption-chunk references
+- Correct quiz answer present in the options
+- Matching discussion chunk and timestamp list lengths
+- Searchable content present
+- Valid content-type labels
+- Expected record counts
+
+### Quiz and Discussion Cleaning
+
+The received quiz and discussion files originally included Lecture 22 records. These were excluded because the corresponding course source assets were unavailable.
+
+Caption references were also standardised from three-digit formatting:
+
+```text
+lec01_caption_chunk_001
+```
+
+to the caption-database format:
+
+```text
+lec01_caption_chunk_01
+```
+
+Records containing only nonexistent caption references were excluded. One discussion record containing both valid and invalid references was retained after removing only the invalid reference.
+
+---
+
+## 18. Embedding Generation
+
+All five content types use:
+
+```text
+Model: BAAI/bge-base-en-v1.5
+Dimensions: 768
+Normalization: L2
+Distance metric: Cosine
+```
+
+### Text Used for Embedding
+
+| Content type | Searchable representation |
+|---|---|
+| Caption | Caption-chunk text |
+| Slide | Visual summary, visible text, explanations, equations and concepts |
+| Frame | Visual summary, visible text, explanations, equations and concepts |
+| Quiz | Question, options, answer, explanation, topic and concepts |
+| Discussion | Title, post, topic, themes, concepts, sentiment and severity |
+
+Administrative fields such as local file paths and image sizes are stored as payload metadata but are not used as semantic embedding input.
+
+---
+
+## 19. Embedding Commands
+
+Run from inside `database_pipeline`.
+
+### Compile Modules
+
+```powershell
+python -m compileall src
+```
+
+### Generate Caption, Slide and Frame Embeddings
+
+```powershell
+python -m src.embeddings
+```
+
+### Generate Quiz and Discussion Embeddings
+
+```powershell
+python -m src.quiz_discussion_embedding
+```
+
+Generated files:
+
+```text
+processed/embeddings/
+├── caption_database_embeddings.json
+├── slide_database_embeddings.json
+├── frame_database_embeddings.json
+├── quiz_database_embeddings.json
+└── discussion_database_embeddings.json
+```
+
+---
+
+## 20. Embedding Validation
+
+| Validation check | Caption | Slide | Frame | Quiz | Discussion |
+|---|---:|---:|---:|---:|---:|
+| Database records | 1,572 | 1,420 | 1,267 | 456 | 570 |
+| Embeddings | 1,572 | 1,420 | 1,267 | 456 | 570 |
+| Dimensions | 768 | 768 | 768 | 768 | 768 |
+| Invalid dimensions | 0 | 0 | 0 | 0 | 0 |
+| Duplicate IDs | 0 | 0 | 0 | 0 | 0 |
+| Vector norm | ≈1.0 | ≈1.0 | ≈1.0 | ≈1.0 | ≈1.0 |
+
+All database records have a one-to-one matching embedding.
+
+---
+
+## 21. Qdrant Configuration
+
+```text
+Collection name: COURSEERA_ALMAX_MULTIMODAL
+Vector dimensions: 768
+Distance metric: Cosine
+Payload index: content_type (keyword)
+```
+
+Supported content-type values:
+
+```text
+caption
+slide
+frame
+quiz
+discussion
+```
+
+The `content_type` keyword index supports filtered counts and retrieval.
+
+---
+
+## 22. Qdrant Upload
+
+### Upload Initial Modalities
+
+```powershell
+python -m src.qdrant_db
+```
+
+This uploads:
+
+- Caption records
+- Slide records
+- Frame records
+
+### Integrate Quiz and Discussion
+
+```powershell
+python -m src.quiz_discussion_qdrant
+```
+
+The integration script:
+
+- Discovers existing Qdrant counts dynamically
+- Validates local database counts
+- Checks embedding compatibility
+- Builds complete payloads
+- Adds `linked_chunk_ids`
+- Uploads in batches
+- Uses deterministic UUID5 point identifiers
+- Supports safe reruns
+- Validates final content-type counts
+
+Deterministic point identifiers prevent duplicate points during reruns.
+
+---
+
+## 23. Final Qdrant Counts
+
+| Content type | Points |
+|---|---:|
+| Caption | 1,572 |
+| Slide | 1,420 |
+| Frame | 1,267 |
+| Quiz | 456 |
+| Discussion | 570 |
+| **Total** | **5,285** |
+
+Final validation confirmed:
+
+- 5,285 total points
+- Correct content-type distribution
+- 768-dimensional vectors
+- Consistent embedding model
+- Populated payload metadata
+- Valid frame-to-caption references
+- Valid quiz-to-caption references
+- Valid discussion-to-caption references
+
+---
+
+## 24. Backend and RAG Instructions
+
+The backend and RAG teams should:
+
+1. Connect using the Qdrant cluster URL.
+2. Use a restricted backend API key.
+3. Use the collection:
+
+```text
+COURSEERA_ALMAX_MULTIMODAL
+```
+
+4. Generate query embeddings using:
+
+```text
+BAAI/bge-base-en-v1.5
+```
+
+5. Normalize query embeddings.
+6. Use 768-dimensional vectors.
+7. Apply filters when necessary:
+
+```text
+content_type
+course_id
+module_id
+lecture_id
+```
+
+8. Retrieve relevant payload metadata with each result.
+9. Use `primary_chunk_id` for frame-caption relationships.
+10. Use `linked_chunk_ids` for quiz-caption and discussion-caption relationships.
+11. Include source identifiers and timestamps in citations.
+12. Avoid exposing local file paths to frontend users.
+
+### Example Retrieval Logic
+
+```text
+User query
+→ Generate normalized BGE query embedding
+→ Search Qdrant
+→ Retrieve related multimodal points
+→ Group or filter by lecture and content type
+→ Follow linked caption references
+→ Assemble evidence
+→ Send evidence to the LLM
+→ Generate a cited response
+```
+
+---
+
+## 25. Image Access
+
+Qdrant stores vectors and metadata, not the actual slide or frame images.
+
+Local paths such as:
+
+```text
+C:\Users\...\processed\...
+```
+
+cannot be opened by the backend or frontend on another computer.
+
+If images must be displayed:
+
+1. Upload them to approved shared object storage.
+2. Generate accessible or signed URLs.
+3. Add the URL to the Qdrant payload.
+4. Retrieve the URL with the matching point.
+
+Do not store image files as Base64 payload values.
+
+---
+
+## 26. Validation Commands
+
+### Compile Source Code
+
+```powershell
+python -m compileall src
+```
+
+### Run Pipeline Validation
+
+```powershell
+python -m src.validation
+```
+
+### Check Installed Packages
+
+```powershell
+pip check
+```
+
+### Check Qdrant Point Count
+
+```python
+client.count(
+    collection_name="COURSEERA_ALMAX_MULTIMODAL",
+    exact=True,
+)
+```
+
+Expected total:
+
+```text
+5285
+```
+
+---
+
+## 27. Files Excluded from Git
+
+The following should not be committed:
+
+```gitignore
+.env
+__pycache__/
+*.pyc
+
+raw/
+processed/
+
+*.mp4
+*.avi
+*.mov
+
+*_embeddings.json
+```
+
+Also exclude:
+
+- API keys
+- Personal file paths
+- Temporary outputs
+- Downloaded videos
+- Extracted slide images
+- Extracted frames
+- Large PDF files
+- Database backups
+- Virtual environments
+
+---
+
+## 28. Security Guidelines
+
+- Never commit `.env`.
+- Never commit administrative API keys.
+- Share the backend Qdrant key privately.
+- Use restricted access where supported.
+- Do not place credentials in screenshots.
+- Do not expose local directory paths.
+- Rotate any credential that is accidentally exposed.
+- Do not log complete secrets in terminal output.
+- Keep Gemini and Qdrant credentials separate.
+
+---
+
+## 29. Troubleshooting
+
+### Missing Database File
+
+Confirm that the expected CSV exists under:
+
+```text
+processed/databases/
+```
+
+### Missing Embedding File
+
+Generate embeddings before running the Qdrant upload.
+
+### Wrong Vector Dimensions
+
+All records must use 768-dimensional vectors from:
+
+```text
+BAAI/bge-base-en-v1.5
+```
+
+### Qdrant Filter Requires an Index
+
+Create a keyword payload index for:
+
+```text
+content_type
+```
+
+### Qdrant Payload Contains Null Values
+
+Check the payload-cleaning function and ensure supported strings, numbers, lists and dictionaries are preserved.
+
+### Local Image Does Not Display in Qdrant
+
+Qdrant Cloud cannot access a file stored on a local computer. Use shared object-storage URLs for image display.
+
+### Repeated Upload
+
+The upload scripts use deterministic UUID5 point IDs. Re-uploading the same `record_id` updates the existing point instead of creating a duplicate.
+
+---
+
+## 30. Current Project Status
+
+Completed:
+
+- Asset discovery and organisation
+- Caption processing
+- Transcript validation
+- Slide-image extraction
+- Caption-linked frame extraction
+- Gemini slide and frame analysis
+- Five structured databases
+- Quiz and discussion integration
+- Five embedding datasets
+- Centralised Qdrant collection
+- Payload and count validation
+- Backend Qdrant access handoff
+
+Current validated Qdrant total:
+
+```text
+5,285 points
+```
+
+The database layer is ready for backend retrieval and RAG integration.
