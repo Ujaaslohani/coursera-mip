@@ -31,8 +31,10 @@ The database pipeline is designed to:
 - Connect quizzes and discussions with supporting caption chunks
 - Generate consistent text embeddings across all content types
 - Upload vectors and metadata into one Qdrant collection
+- Store database-referenced slides and caption-linked frames in a private Hugging Face dataset
+- Add portable visual-asset references to the existing Qdrant slide and frame payloads
 - Validate record counts, identifiers, payloads and relationships
-- Provide a searchable database for backend and RAG applications
+- Provide searchable textual and visual evidence for backend and RAG applications
 
 ---
 
@@ -81,6 +83,12 @@ BGE embedding generation
 Centralised Qdrant collection
         │
         ▼
+Private Hugging Face visual dataset
+        │
+        ├── Slide images
+        └── Caption-linked frames
+        │
+        ▼
 Backend retrieval and RAG
 ```
 
@@ -98,7 +106,7 @@ database_pipeline/
 │   ├── frame_audit.py
 │   ├── visual_analysis.py
 │   ├── visual_database.py
-│   ├── databases.py
+│   ├── caption_databases.py
 │   ├── quiz_db.py
 │   ├── discussion_db.py
 │   ├── embeddings.py
@@ -106,6 +114,7 @@ database_pipeline/
 │   ├── qdrant_db.py
 │   ├── quiz_discussion_qdrant.py
 │   ├── validation.py
+│   ├── visual_asset_qdrant.py
 │   └── pipeline.py
 │
 ├── requirements.txt
@@ -122,13 +131,14 @@ database_pipeline/
 | `frame_audit.py` | Extracts representative caption-linked video frames |
 | `visual_analysis.py` | Analyses slides and frames using Gemini |
 | `visual_database.py` | Creates structured slide and frame records |
-| `databases.py` | Creates the caption database |
+| `caption_databases.py` | Creates the caption database |
 | `quiz_db.py` | Creates or prepares quiz records |
 | `discussion_db.py` | Creates or prepares discussion records |
 | `embeddings.py` | Generates caption, slide and frame embeddings |
 | `quiz_discussion_embedding.py` | Generates quiz and discussion embeddings |
 | `qdrant_db.py` | Uploads caption, slide and frame points |
 | `quiz_discussion_qdrant.py` | Integrates quiz and discussion points |
+| `visual_asset_qdrant.py` | Adds Hugging Face visual-asset references to existing slide and frame payloads |
 | `validation.py` | Validates databases, embeddings and outputs |
 | `pipeline.py` | Coordinates major pipeline stages |
 
@@ -235,6 +245,7 @@ Create a local `.env` file containing the required credentials.
 QDRANT_URL=
 QDRANT_API_KEY=
 GEMINI_API_KEY=
+HF_TOKEN=
 ```
 
 Verify the exact Gemini variable name used in `visual_analysis.py`. If the code uses another name, use that name in `.env`.
@@ -246,8 +257,9 @@ Verify the exact Gemini variable name used in `visual_analysis.py`. If the code 
 | `QDRANT_URL` | Qdrant Cloud cluster endpoint |
 | `QDRANT_API_KEY` | Authorised key for accessing Qdrant |
 | `GEMINI_API_KEY` | Key used for slide and frame visual analysis |
+| `HF_TOKEN` | Private Hugging Face dataset access token used by the backend for visual retrieval |
 
-Never commit `.env` or paste API keys into documentation, screenshots, chat messages or source code.
+`HF_TOKEN` is not required by `visual_asset_qdrant.py`; it is required by the backend when retrieving files from the private visual dataset. Never commit `.env` or paste API keys into documentation, screenshots, chat messages or source code.
 
 ---
 
@@ -450,6 +462,8 @@ Important fields include:
 record_id
 lecture_id
 slide_no
+image_file_name
+image_file_path
 summary
 visual_types
 visual_text
@@ -474,6 +488,8 @@ frame_id
 lecture_id
 primary_chunk_id
 timestamp_seconds
+frame_filename
+frame_file_path
 summary
 visual_types
 visual_text
@@ -740,6 +756,33 @@ The integration script:
 
 Deterministic point identifiers prevent duplicate points during reruns.
 
+### Integrate Visual-Asset References
+
+The database-referenced slide images and caption-linked frames are stored in the private Hugging Face dataset:
+
+```text
+pranaybannu/COURSEERA_ALMAX_VISUALS
+```
+
+Run the visual-payload integration after the slide and frame points already exist in Qdrant:
+
+```powershell
+python -m py_compile src\visual_asset_qdrant.py
+python -m src.visual_asset_qdrant
+```
+
+The script:
+
+- Loads the final slide and frame databases
+- Builds portable repository-relative asset paths
+- Matches records to existing Qdrant points using deterministic UUID5 identifiers
+- Adds only the visual-asset payload fields
+- Preserves existing vectors and payload metadata
+- Validates every updated visual point
+- Confirms dynamically that the collection count remains unchanged
+
+The operation is idempotent and can be safely rerun for the same records.
+
 ---
 
 ## 23. Final Qdrant Counts
@@ -763,6 +806,16 @@ Final validation confirmed:
 - Valid frame-to-caption references
 - Valid quiz-to-caption references
 - Valid discussion-to-caption references
+
+```text
+Visual payloads updated: 2687/2687
+Qdrant visual records validated: 2687/2687
+Invalid Qdrant visual records: 0
+Point count before: 5285
+Point count after: 5285
+```
+
+The unchanged point count confirms that existing slide and frame points were enriched rather than duplicated.
 
 ---
 
@@ -800,6 +853,9 @@ lecture_id
 10. Use `linked_chunk_ids` for quiz-caption and discussion-caption relationships.
 11. Include source identifiers and timestamps in citations.
 12. Avoid exposing local file paths to frontend users.
+13. For slide and frame results, read `asset_repo_id`, `asset_repo_type`, `asset_revision`, `asset_path` and `mime_type`.
+14. Configure `HF_TOKEN` only in the backend environment.
+15. Retrieve the private visual file on the backend and proxy it to the frontend without exposing the token.
 
 ### Example Retrieval Logic
 
@@ -817,26 +873,111 @@ User query
 
 ---
 
-## 25. Image Access
+## 25. Visual Evidence Storage and Retrieval
 
-Qdrant stores vectors and metadata, not the actual slide or frame images.
+Qdrant stores vectors, searchable metadata and visual-asset references. It does not store the actual slide or frame image binaries.
 
-Local paths such as:
+The database-referenced visuals are stored in the private Hugging Face dataset:
 
 ```text
-C:\Users\...\processed\...
+Repository: pranaybannu/COURSEERA_ALMAX_VISUALS
+Repository type: dataset
+Visibility: private
 ```
 
-cannot be opened by the backend or frontend on another computer.
+### Stored Visual Assets
 
-If images must be displayed:
+| Visual type | Files |
+|---|---:|
+| Slide images | 1,420 |
+| Caption-linked frames | 1,267 |
+| **Total** | **2,687** |
 
-1. Upload them to approved shared object storage.
-2. Generate accessible or signed URLs.
-3. Add the URL to the Qdrant payload.
-4. Retrieve the URL with the matching point.
+Only files represented in the final slide and frame databases were uploaded. Extra extracted files that were not represented by Qdrant points were excluded.
 
-Do not store image files as Base64 payload values.
+```text
+COURSEERA_ALMAX_VISUALS/
+├── slides/
+│   ├── lec01/
+│   │   ├── lec01_slide_001.png
+│   │   └── ...
+│   └── ...
+└── frames/
+    ├── lec01/
+    │   ├── frame_lec01_001.jpg
+    │   └── ...
+    └── ...
+```
+
+### Visual Fields Added to Qdrant
+
+| Field | Purpose |
+|---|---|
+| `asset_provider` | Identifies Hugging Face as the visual storage provider |
+| `asset_repo_id` | Identifies the private dataset repository |
+| `asset_repo_type` | Identifies the repository as a dataset |
+| `asset_revision` | Identifies the repository revision, currently `main` |
+| `asset_path` | Portable path of the image inside the dataset |
+| `mime_type` | Identifies the image format |
+
+Example slide fields:
+
+```json
+{
+  "asset_provider": "HuggingFace",
+  "asset_repo_id": "pranaybannu/COURSEERA_ALMAX_VISUALS",
+  "asset_repo_type": "dataset",
+  "asset_revision": "main",
+  "asset_path": "slides/lec01/lec01_slide_001.png",
+  "mime_type": "image/png"
+}
+```
+
+Example frame fields:
+
+```json
+{
+  "asset_provider": "HuggingFace",
+  "asset_repo_id": "pranaybannu/COURSEERA_ALMAX_VISUALS",
+  "asset_repo_type": "dataset",
+  "asset_revision": "main",
+  "asset_path": "frames/lec01/frame_lec01_001.jpg",
+  "mime_type": "image/jpeg"
+}
+```
+
+Local fields such as `image_file_path` and `frame_file_path` are retained only for audit and reproducibility. They cannot be used by a backend running on another computer.
+
+### Backend Visual Retrieval
+
+The backend requires the following environment variable:
+
+```text
+HF_TOKEN
+```
+
+The token must have read permission for the private dataset. It must remain on the backend and must never be returned to the frontend, stored in Qdrant or committed to Git.
+
+The backend can retrieve an image using:
+
+```python
+import os
+
+from huggingface_hub import hf_hub_download
+
+
+asset_file = hf_hub_download(
+    repo_id=payload["asset_repo_id"],
+    repo_type=payload["asset_repo_type"],
+    revision=payload["asset_revision"],
+    filename=payload["asset_path"],
+    token=os.environ["HF_TOKEN"],
+)
+```
+
+The backend should serve or proxy the downloaded file through an authenticated application endpoint. Do not store images as Base64 values inside Qdrant.
+
+Frame evidence can additionally use `primary_chunk_id` and `timestamp_seconds` to connect the image with the instructor explanation and video location. Slide evidence can use `lecture_id` and `slide_no` to identify its original position.
 
 ---
 
@@ -852,6 +993,12 @@ python -m compileall src
 
 ```powershell
 python -m src.validation
+```
+
+### Add and Validate Visual-Asset Payloads
+
+```powershell
+python -m src.visual_asset_qdrant
 ```
 
 ### Check Installed Packages
@@ -888,12 +1035,14 @@ __pycache__/
 
 raw/
 processed/
+COURSEERA_ALMAX_VISUALS_UPLOAD/
 
 *.mp4
 *.avi
 *.mov
 
 *_embeddings.json
+visual_retrieval_test.py
 ```
 
 Also exclude:
@@ -921,6 +1070,9 @@ Also exclude:
 - Rotate any credential that is accidentally exposed.
 - Do not log complete secrets in terminal output.
 - Keep Gemini and Qdrant credentials separate.
+- Keep the Hugging Face token separate from Gemini and Qdrant credentials.
+- Give the backend Hugging Face token read access only.
+- Never store `HF_TOKEN` in a Qdrant payload or frontend configuration.
 
 ---
 
@@ -960,7 +1112,20 @@ Check the payload-cleaning function and ensure supported strings, numbers, lists
 
 ### Local Image Does Not Display in Qdrant
 
-Qdrant Cloud cannot access a file stored on a local computer. Use shared object-storage URLs for image display.
+Qdrant Cloud cannot access files stored on a local computer. Confirm that the point contains `asset_repo_id` and `asset_path`, that the file exists in `pranaybannu/COURSEERA_ALMAX_VISUALS`, and that the backend has a valid `HF_TOKEN`.
+
+### Hugging Face Returns an Authorisation Error
+
+Confirm that:
+
+- `HF_TOKEN` exists in the backend environment
+- The token has read permission for the private dataset
+- The repository ID is `pranaybannu/COURSEERA_ALMAX_VISUALS`
+- The requested `asset_path` matches the path stored in Qdrant
+
+### Qdrant Visual Count Changes
+
+`visual_asset_qdrant.py` should only update existing payloads. If the total changes, stop the process and confirm that the script uses `set_payload` with existing deterministic point IDs rather than uploading new points.
 
 ### Repeated Upload
 
@@ -983,6 +1148,9 @@ Completed:
 - Five embedding datasets
 - Centralised Qdrant collection
 - Payload and count validation
+- Private Hugging Face visual dataset containing 2,687 database-referenced assets
+- Portable visual-asset metadata added to all 1,420 slide and 1,267 frame points
+- End-to-end Qdrant-to-private-asset access validation
 - Backend Qdrant access handoff
 
 Current validated Qdrant total:
@@ -991,4 +1159,4 @@ Current validated Qdrant total:
 5,285 points
 ```
 
-The database layer is ready for backend retrieval and RAG integration.
+The database and visual-evidence layers are ready for backend retrieval and RAG integration.
