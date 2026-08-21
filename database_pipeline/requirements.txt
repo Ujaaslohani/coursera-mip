@@ -7,4 +7,4 @@ google-genai
 pydantic
 python-dotenv
 qdrant-client
-sentence-transformersexit
+sentence-transformers
