@@ -8,3 +8,4 @@ pydantic
 python-dotenv
 qdrant-client
 sentence-transformers
+huggingface_hub
