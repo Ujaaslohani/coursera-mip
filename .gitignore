@@ -253,3 +253,9 @@ database_pipeline/**/*.jpeg
 
 # Locally generated manifests
 database_pipeline/manifests/
+
+# macOS system files
+.DS_Store
+
+# VS Code workspace settings
+*.code-workspace
