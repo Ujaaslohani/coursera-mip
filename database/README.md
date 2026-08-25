@@ -97,7 +97,7 @@ Backend retrieval and RAG
 ## 4. Repository Structure
 
 ```text
-database_pipeline/
+database/
 ├── src/
 │   ├── __init__.py
 │   ├── config.py
@@ -226,7 +226,7 @@ source .venv/bin/activate
 
 ```powershell
 python -m pip install --upgrade pip
-pip install -r database_pipeline\requirements.txt
+pip install -r database\requirements.txt
 ```
 
 Check the installed packages:
@@ -651,7 +651,7 @@ Administrative fields such as local file paths and image sizes are stored as pay
 
 ## 19. Embedding Commands
 
-Run from inside `database_pipeline`.
+Run from inside `database`.
 
 ### Compile Modules
 
