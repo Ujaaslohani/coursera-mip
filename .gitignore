@@ -219,43 +219,37 @@ __marimo__/
 
 
 # Database pipeline secrets
-database_pipeline/.env
-database_pipeline/*.env
-!database_pipeline/.env.example
+database/.env
+database/*.env
+!database/.env.example
 
 # Python environments and caches
-database_pipeline/.venv/
-database_pipeline/venv/
-database_pipeline/**/__pycache__/
-database_pipeline/**/*.py[cod]
-database_pipeline/.pytest_cache/
+database/.venv/
+database/venv/
+database/**/__pycache__/
+database/**/*.py[cod]
+database/.pytest_cache/
 
 # Raw course data
-database_pipeline/deeplearning/
-database_pipeline/data/
+database/deeplearning/
+database/data/
 
 # Generated outputs
-database_pipeline/processed/
-database_pipeline/qdrant_storage/
+database/processed/
+database/qdrant_storage/
 
 # Checkpoints
-database_pipeline/**/*checkpoint*.json
-database_pipeline/**/*checkpoint*.jsonl
+database/**/*checkpoint*.json
+database/**/*checkpoint*.jsonl
 
 # Large media and source documents
-database_pipeline/**/*.mp4
-database_pipeline/**/*.mkv
-database_pipeline/**/*.avi
-database_pipeline/**/*.pdf
-database_pipeline/**/*.png
-database_pipeline/**/*.jpg
-database_pipeline/**/*.jpeg
+database/**/*.mp4
+database/**/*.mkv
+database/**/*.avi
+database/**/*.pdf
+database/**/*.png
+database/**/*.jpg
+database/**/*.jpeg
 
 # Locally generated manifests
-database_pipeline/manifests/
-
-# macOS system files
-.DS_Store
-
-# VS Code workspace settings
-*.code-workspace
+database/manifests/
