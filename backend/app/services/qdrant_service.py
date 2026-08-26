@@ -13,6 +13,7 @@ from app.models import (
     AssetSummary,
     CollectionResponse,
     ContextResponse,
+    EmbeddingRefreshResponse,
     EvidenceContext,
     EvidenceResult,
     MetadataOptionsResponse,
@@ -31,7 +32,12 @@ TEXT_PAYLOAD_KEYS = (
     "transcript",
     "description",
     "summary",
+    "thread_title",
+    "post_text",
+    "review_text",
+    "question",
     "question_text",
+    "explanation",
     "answer_text",
 )
 
@@ -112,6 +118,61 @@ class QdrantService:
 
         point = points[0]
         return RecordResponse(id=str(point.id), payload=point.payload or {})
+
+    def verify_embeddings(self, point_ids: list[str]) -> EmbeddingRefreshResponse:
+        unique_ids = [point_id for point_id in dict.fromkeys(point_ids) if point_id]
+        if not unique_ids:
+            return EmbeddingRefreshResponse(
+                requested_count=0,
+                verified_count=0,
+                updated_count=0,
+                skipped_count=0,
+                status="no_segments_requested",
+                details=[],
+            )
+
+        details: list[dict[str, Any]] = []
+        verified_count = 0
+
+        for point_id in unique_ids:
+            try:
+                record = self.get_record(point_id)
+                payload = record.payload
+                embedding_model = payload.get("embedding_model")
+                dimensions = payload.get("embedding_dimensions")
+                verified = embedding_model == self.settings.embedding_model
+                if dimensions is not None:
+                    verified = verified and int(dimensions) == self.settings.embedding_dimensions
+                verified_count += 1 if verified else 0
+                details.append(
+                    {
+                        "point_id": point_id,
+                        "exists": True,
+                        "verified": verified,
+                        "embedding_model": embedding_model,
+                        "embedding_dimensions": dimensions,
+                        "message": "Existing Qdrant point verified; no vector mutation performed.",
+                    }
+                )
+            except HTTPException as exc:
+                details.append(
+                    {
+                        "point_id": point_id,
+                        "exists": False,
+                        "verified": False,
+                        "message": exc.detail,
+                    }
+                )
+
+        skipped_count = len(unique_ids) - verified_count
+        return EmbeddingRefreshResponse(
+            requested_count=len(unique_ids),
+            verified_count=verified_count,
+            updated_count=0,
+            skipped_count=skipped_count,
+            status="verified_existing_embeddings",
+            details=details,
+        )
 
     def semantic_search(
         self, query: str, top_k: int, filters: dict[str, Any] | None = None

@@ -17,6 +17,10 @@ class Settings:
     embedding_dimensions: int
     qdrant_distance: str
     hf_home: str
+    supabase_url: str | None
+    supabase_publishable_key: str | None
+    supabase_secret_key: str | None
+    supabase_jwks_url: str | None
     frontend_origins: list[str]
 
     def __init__(self) -> None:
@@ -41,6 +45,10 @@ class Settings:
         self.hf_home = str(hf_home_path)
         os.environ.setdefault("HF_HOME", self.hf_home)
         os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", str(hf_home_path / "sentence-transformers"))
+        self.supabase_url = _optional_env("SUPABASE_URL")
+        self.supabase_publishable_key = _optional_env("SUPABASE_PUBLISHABLE_KEY")
+        self.supabase_secret_key = _optional_env("SUPABASE_SECRET_KEY")
+        self.supabase_jwks_url = _optional_env("SUPABASE_JWKS_URL")
         self.frontend_origins = [
             origin.strip()
             for origin in os.getenv(
@@ -53,3 +61,11 @@ class Settings:
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def _optional_env(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
