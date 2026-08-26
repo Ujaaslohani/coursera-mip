@@ -1,47 +1,133 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+from app.config import Settings, get_settings
+from app.models import (
+    AssetListResponse,
+    CollectionResponse,
+    ContextRequest,
+    ContextResponse,
+    HealthResponse,
+    MetadataOptionsResponse,
+    MetricsResponse,
+    QueryRequest,
+    QueryResponse,
+    RecordResponse,
+    ScrollResponse,
+)
+from app.services.qdrant_service import QdrantService, get_qdrant_service
 
-from app.api import assets, processing_jobs, embeddings, query, synthesize, insights, review_feedback, metrics, audit_log, segments
-from app.database.connection import Base, engine, ensure_vector_extension, ensure_new_columns
-from app.database import models  # noqa: F401 — registers models on Base before create_all
 
-ensure_vector_extension()
-Base.metadata.create_all(bind=engine)
-ensure_new_columns()
+settings = get_settings()
 
 app = FastAPI(
-    title="Coursera Multimodal Intelligence Platform — Backend",
-    description="Ingestion, processing-job orchestration, retrieval, synthesis, and review APIs per product brief §7.3.",
+    title="Coursera Multimodal Intelligence Backend",
+    description="Backend API for Qdrant-backed multimodal evidence retrieval.",
     version="0.1.0",
 )
 
-_allowed_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
+    allow_origins=settings.frontend_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(assets.router, tags=["assets"])
-app.include_router(processing_jobs.router, tags=["processing-jobs"])
-app.include_router(embeddings.router, tags=["embeddings"])
-app.include_router(query.router, tags=["query"])
-app.include_router(synthesize.router, tags=["synthesize"])
-app.include_router(insights.router, tags=["insights"])
-app.include_router(review_feedback.router, tags=["review-feedback"])
-app.include_router(metrics.router, tags=["metrics"])
-app.include_router(audit_log.router, tags=["audit-log"])
-app.include_router(segments.router, tags=["segments"])
+
+@app.get("/health", response_model=HealthResponse)
+def health(config: Settings = Depends(get_settings)) -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        qdrant_url_configured=bool(config.qdrant_url),
+        qdrant_collection=config.qdrant_collection,
+        embedding_model=config.embedding_model,
+    )
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+@app.get("/api/qdrant/collection", response_model=CollectionResponse)
+def collection(
+    service: QdrantService = Depends(get_qdrant_service),
+) -> CollectionResponse:
+    return service.get_collection()
+
+
+@app.get("/api/qdrant/records", response_model=ScrollResponse)
+def records(
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: str | None = None,
+    service: QdrantService = Depends(get_qdrant_service),
+) -> ScrollResponse:
+    return service.scroll_records(limit=limit, offset=offset)
+
+
+@app.get("/api/qdrant/records/{point_id}", response_model=RecordResponse)
+def record(
+    point_id: str,
+    service: QdrantService = Depends(get_qdrant_service),
+) -> RecordResponse:
+    return service.get_record(point_id)
+
+
+@app.get("/api/evidence/{point_id}", response_model=RecordResponse)
+def evidence(
+    point_id: str,
+    service: QdrantService = Depends(get_qdrant_service),
+) -> RecordResponse:
+    return service.get_record(point_id)
+
+
+@app.post("/api/query", response_model=QueryResponse)
+def query(
+    request: QueryRequest,
+    config: Settings = Depends(get_settings),
+    service: QdrantService = Depends(get_qdrant_service),
+) -> QueryResponse:
+    results = service.semantic_search(
+        query=request.query,
+        top_k=request.top_k,
+        filters=request.filters,
+    )
+    return QueryResponse(
+        query=request.query,
+        top_k=request.top_k,
+        collection_name=config.qdrant_collection,
+        results=results,
+    )
+
+
+@app.post("/api/context", response_model=ContextResponse)
+def context(
+    request: ContextRequest,
+    service: QdrantService = Depends(get_qdrant_service),
+) -> ContextResponse:
+    return service.build_context(
+        query=request.query,
+        top_k=request.top_k,
+        filters=request.filters,
+    )
+
+
+@app.get("/api/metadata/options", response_model=MetadataOptionsResponse)
+def metadata_options(
+    scan_limit: int = Query(default=5000, ge=1, le=10000),
+    service: QdrantService = Depends(get_qdrant_service),
+) -> MetadataOptionsResponse:
+    return service.metadata_options(scan_limit=scan_limit)
+
+
+@app.get("/api/assets", response_model=AssetListResponse)
+def assets(
+    limit: int = Query(default=50, ge=1, le=500),
+    scan_limit: int = Query(default=5000, ge=1, le=10000),
+    service: QdrantService = Depends(get_qdrant_service),
+) -> AssetListResponse:
+    return service.list_assets(limit=limit, scan_limit=scan_limit)
+
+
+@app.get("/api/metrics", response_model=MetricsResponse)
+def metrics(
+    scan_limit: int = Query(default=5000, ge=1, le=10000),
+    service: QdrantService = Depends(get_qdrant_service),
+) -> MetricsResponse:
+    return service.metrics(scan_limit=scan_limit)
