@@ -9,3 +9,5 @@ python-dotenv
 qdrant-client
 sentence-transformers
 huggingface_hub
+supabase
+python-dotenv
