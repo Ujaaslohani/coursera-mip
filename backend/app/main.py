@@ -12,6 +12,8 @@ from app.models import (
     ContextResponse,
     ConversationCreateRequest,
     ConversationResponse,
+    CurateRecommendationRequest,
+    CurateRecommendationResponse,
     DashboardSummaryResponse,
     EmbeddingRefreshRequest,
     EmbeddingRefreshResponse,
@@ -61,7 +63,6 @@ from app.services.synthesis_service import (
     context_from_evidence,
     estimate_confidence,
     evidence_for_supabase,
-    recommendations_for_supabase,
 )
 
 
@@ -267,6 +268,14 @@ def conversations(
     return service.list_conversations(limit=limit)
 
 
+@app.get("/api/conversations/{conversation_id}/messages")
+def conversation_messages(
+    conversation_id: str,
+    service: SupabaseService = Depends(get_supabase_service),
+) -> list[dict]:
+    return service.get_conversation_messages(conversation_id)
+
+
 @app.post("/api/interactions", response_model=InteractionSaveResponse)
 def save_interaction(
     request: InteractionSaveRequest,
@@ -323,6 +332,7 @@ def synthesize(
     ]
 
     # Directly run RAG2 LLM synthesis (with fallback if Groq offline)
+    recommended_action: str | None = None
     try:
         if synthesize_insight is None:
             raise RuntimeError("RAG2 synthesize_insight module is not loaded (check dependencies or imports).")
@@ -343,6 +353,7 @@ def synthesize(
             for ev in insight.evidence
         ]
         confidence = round(insight.confidence, 3)
+        recommended_action = getattr(insight, "recommended_action", None)
     except Exception as exc:
         logger.error("LLM Synthesis failed, falling back to static retrieval answer. Reason: %s", exc, exc_info=True)
         answer_text = build_answer(request, context_response)
@@ -360,10 +371,10 @@ def synthesize(
             model_provider=request.model_provider or "groq",
             prompt_version=request.metadata.get("prompt_version"),
             evidence=evidence_for_supabase(context_response),
-            recommendations=recommendations_for_supabase(request, context_response),
+            recommendations=[],  # Do NOT auto-save: curation is explicit via POST /api/recommendations
             metadata={
                 **(request.metadata or {}),
-                "status": "pending_review",
+                "status": "completed",
                 "synthesis_mode": "llm" if not request.generated_answer else "external_llm",
             },
         )
@@ -374,10 +385,29 @@ def synthesize(
         conversation_id=saved.conversation_id,
         query_id=saved.query_id,
         answer_text=answer_text,
+        recommended_action=recommended_action,
         citations=citations,
         confidence=confidence,
-        status="pending_review",
+        status="completed",
     )
+
+
+@app.post("/api/recommendations", response_model=CurateRecommendationResponse)
+def curate_recommendation(
+    request: CurateRecommendationRequest,
+    service: SupabaseService = Depends(get_supabase_service),
+) -> CurateRecommendationResponse:
+    """Explicitly curates a recommendation when clicked in the chat UI."""
+    return service.curate_recommendation(request)
+
+
+@app.get("/api/recommendations", response_model=list[dict])
+def list_recommendations(
+    limit: int = Query(default=50, ge=1, le=100),
+    service: SupabaseService = Depends(get_supabase_service),
+) -> list[dict]:
+    """Fetches all curated recommendations for the /recommendations page."""
+    return service.list_curated_recommendations(limit=limit)
 
 
 @app.get("/api/insights", response_model=list[dict])

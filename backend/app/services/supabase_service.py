@@ -9,6 +9,8 @@ from app.config import Settings, get_settings
 from app.models import (
     ConversationCreateRequest,
     ConversationResponse,
+    CurateRecommendationRequest,
+    CurateRecommendationResponse,
     DashboardSummaryResponse,
     FeedbackCreateRequest,
     FeedbackResponse,
@@ -100,6 +102,13 @@ class SupabaseService:
         )
         return [ConversationResponse(**item) for item in data]
 
+    def get_conversation_messages(self, conversation_id: str) -> list[dict[str, Any]]:
+        data = self._request(
+            "GET",
+            f"/rest/v1/user_queries?conversation_id=eq.{conversation_id}&select=*,generated_responses(*,retrieval_evidence(*),recommendations(*))&order=created_at.asc",
+        )
+        return data if data else []
+
     def save_interaction(
         self, request: InteractionSaveRequest
     ) -> InteractionSaveResponse:
@@ -190,6 +199,47 @@ class SupabaseService:
                     prefer="return=minimal",
                 )
             raise
+
+    def curate_recommendation(
+        self, request: CurateRecommendationRequest
+    ) -> CurateRecommendationResponse:
+        rec_payload = {
+            "response_id": request.insight_id,
+            "recommendation_type": request.category,
+            "recommendation_text": request.recommendation_text,
+            "priority": request.priority,
+            "metadata": {
+                **request.metadata,
+                "title": request.title,
+                "curated_at": datetime.now(timezone.utc).isoformat(),
+            },
+        }
+        result = self._request(
+            "POST",
+            "/rest/v1/recommendations",
+            json=rec_payload,
+            prefer="return=representation",
+        )
+        rec_id = result[0]["recommendation_id"] if result else "created"
+
+        # Mark the response as pending review
+        self._request(
+            "PATCH",
+            f"/rest/v1/generated_responses?response_id=eq.{request.insight_id}",
+            json={"response_status": "pending"},
+            prefer="return=minimal",
+        )
+
+        return CurateRecommendationResponse(
+            recommendation_id=rec_id,
+            insight_id=request.insight_id,
+        )
+
+    def list_curated_recommendations(self, limit: int = 50) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            f"/rest/v1/recommendations?select=*,generated_responses(query_id,generated_answer,response_status,user_queries(query_text),retrieval_evidence(qdrant_record_id,content_type,evidence_text,similarity_score,retrieval_rank))&order=created_at.desc&limit={limit}",
+        )
 
     def save_feedback(self, request: FeedbackCreateRequest) -> FeedbackResponse:
         data = self._request(

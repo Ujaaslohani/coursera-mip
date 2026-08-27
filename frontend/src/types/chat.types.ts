@@ -21,6 +21,7 @@ export interface SynthesizeResponse {
   conversation_id: string;
   query_id: string;
   answer_text: string;
+  recommended_action?: string | null;
   citations: Citation[];
   confidence: number;
   status: string;
@@ -42,6 +43,10 @@ export interface ChatMessage {
   content: string;
   confidence?: number;
   citations?: Citation[];
+  insightId?: string;
+  recommendedAction?: string | null;
+  isCurated?: boolean;
+  curatedSteps?: string[];
 }
 
 export interface ChatHistoryItem {
@@ -51,13 +56,7 @@ export interface ChatHistoryItem {
   preview: string;
 }
 
-// INSIGHT MESSAGE CARD & PARSER TYPES
-export interface InsightMessageCardProps {
-  content: string;
-  confidence?: number;
-  citations?: Citation[];
-}
-
+// INSIGHT PARSER TYPES
 export interface ParsedInsight {
   summary?: string;
   friction?: string;
