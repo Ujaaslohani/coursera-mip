@@ -2,9 +2,7 @@
 from typing import List, Literal
 from pydantic import BaseModel, Field
 
-Modality = Literal[
-    "video", "image", "slide", "transcript", "quiz", "discussion", "text"
-]
+Modality = str
 
 
 class EvidenceSegment(BaseModel):
@@ -14,7 +12,10 @@ class EvidenceSegment(BaseModel):
     source_id: str = Field(
         ..., description="ID of the parent asset (video, doc, etc.)"
     )
-    modality: Modality
+    modality: str = Field(
+        default="text",
+        description="Type of evidence: caption, slide, frame, transcript, quiz, discussion, video, etc.",
+    )
     timestamp: str = Field(
         default="",
         description="Timestamp/location within the source, empty string if not applicable",

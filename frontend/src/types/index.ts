@@ -96,4 +96,6 @@ export interface DashboardData {
   processingMonitor: ProcessingMonitorItem[];
 }
 
+export * from "./chat.types";
+
 
