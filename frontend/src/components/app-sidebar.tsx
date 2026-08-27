@@ -4,6 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import Image from "next/image";
+import logoExpanded from "@/assets/LOGO-UP.png";
+import logoCollapsed from "@/assets/COLLAPSED-UP.png";
 import { ChevronsUpDown } from "lucide-react";
 import {
   Sidebar,
@@ -23,12 +26,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border" {...props}>
-      <SidebarHeader className="h-14 flex items-center px-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center border-b border-sidebar-border">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="font-heading font-bold text-sm text-foreground tracking-tight">
-            MIP
-          </span>
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-sidebar-border"
+      {...props}
+    >
+      <SidebarHeader className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
+        <Link
+          href="/dashboard"
+          className="flex items-center justify-center w-full py-1"
+        >
+          {/* EXPANDED LOGO */}
+          <div className="flex items-center justify-center w-full group-data-[collapsible=icon]:hidden">
+            <Image
+              src={logoExpanded}
+              alt="Coursera MIP"
+              height={24}
+              className="h-6 w-auto object-contain mx-auto"
+              priority
+            />
+          </div>
+
+          {/* COLLAPSED ICON LOGO */}
+          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full">
+            <Image
+              src={logoCollapsed}
+              alt="MIP"
+              height={16}
+              className="h-4 w-auto object-contain mx-auto"
+              priority
+            />
+          </div>
         </Link>
       </SidebarHeader>
 
@@ -43,7 +71,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {navMain.map((item) => {
                 const isActive = pathname === item.url;
                 return (
-                  <SidebarMenuItem key={item.title} className="flex justify-center">
+                  <SidebarMenuItem
+                    key={item.title}
+                    className="flex justify-center"
+                  >
                     <SidebarMenuButton
                       render={<Link href={item.url} />}
                       isActive={isActive}
@@ -54,8 +85,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           : "text-foreground font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       }`}
                     >
-                      <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary dark:text-sidebar-accent-foreground" : "text-foreground/80 group-hover/menu-button:text-sidebar-accent-foreground"}`} />
-                      <span className="flex-1 truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
+                      <item.icon
+                        className={`h-4 w-4 shrink-0 ${isActive ? "text-primary dark:text-sidebar-accent-foreground" : "text-foreground/80 group-hover/menu-button:text-sidebar-accent-foreground"}`}
+                      />
+                      <span className="flex-1 truncate group-data-[collapsible=icon]:hidden">
+                        {item.title}
+                      </span>
                       {item.badge && (
                         <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary group-data-[collapsible=icon]:hidden">
                           {item.badge}
@@ -82,8 +117,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 N
               </div>
               <div className="flex flex-col text-left text-xs leading-tight group-data-[collapsible=icon]:hidden truncate min-w-0 flex-1">
-                <span className="font-semibold text-foreground truncate">Navya</span>
-                <span className="text-[11px] text-muted-foreground truncate">navya@coursera.org</span>
+                <span className="font-semibold text-foreground truncate">
+                  Navya
+                </span>
+                <span className="text-[11px] text-muted-foreground truncate">
+                  navya@coursera.org
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
@@ -93,4 +132,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   );
 }
-

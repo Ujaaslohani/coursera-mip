@@ -6,6 +6,7 @@ from app.models import (
     AssetRegisterRequest,
     AssetRegisterResponse,
     AssetListResponse,
+    Citation,
     CollectionResponse,
     ContextRequest,
     ContextResponse,
@@ -35,6 +36,22 @@ from app.models import (
     SupabaseHealthResponse,
     SupabaseTablesResponse,
 )
+import logging
+import sys
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# Enable direct import from RAG2 folder
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+try:
+    from RAG2.synthesis import synthesize_insight
+except Exception:
+    synthesize_insight = None
+
 from app.services.operations_store import OperationsStore, get_operations_store
 from app.services.qdrant_service import QdrantService, get_qdrant_service
 from app.services.supabase_service import SupabaseService, get_supabase_service
@@ -292,7 +309,46 @@ def synthesize(
         )
         conversation_id = conversation.conversation_id
 
-    answer_text = build_answer(request, context_response)
+    # Format chunks for RAG2
+    chunks = [
+        {
+            "segment_id": item.point_id,
+            "source_id": item.source_id or item.asset_id or item.lecture_id or item.point_id,
+            "modality": item.content_type or "text",
+            "timestamp": item.timestamp or "",
+            "excerpt": item.text,
+            "score": item.score or 0.7,
+        }
+        for item in context_response.context
+    ]
+
+    # Directly run RAG2 LLM synthesis (with fallback if Groq offline)
+    try:
+        if synthesize_insight is None:
+            raise RuntimeError("RAG2 synthesize_insight module is not loaded (check dependencies or imports).")
+        insight = synthesize_insight(query=request.query, reranked_chunks=chunks)
+        answer_text = (
+            f"**Summary:** {insight.summary}\n\n"
+            f"**Friction Diagnostic:**\n{insight.friction_explanation}\n\n"
+            f"**Recommended Action:**\n{insight.recommended_action}"
+        )
+        citations = [
+            Citation(
+                point_id=ev.segment_id,
+                content_type=ev.modality,
+                lecture_id=ev.source_id,
+                score=ev.confidence,
+                text_preview=ev.excerpt[:180] + "..." if len(ev.excerpt) > 180 else ev.excerpt,
+            )
+            for ev in insight.evidence
+        ]
+        confidence = round(insight.confidence, 3)
+    except Exception as exc:
+        logger.error("LLM Synthesis failed, falling back to static retrieval answer. Reason: %s", exc, exc_info=True)
+        answer_text = build_answer(request, context_response)
+        citations = build_citations(context_response)
+        confidence = estimate_confidence(context_response)
+
     saved = supabase_service.save_interaction(
         InteractionSaveRequest(
             conversation_id=conversation_id,
@@ -300,15 +356,15 @@ def synthesize(
             generated_answer=answer_text,
             normalized_topic=request.metadata.get("normalized_topic"),
             detected_intent=request.metadata.get("detected_intent", "synthesis"),
-            model_name=request.model_name,
-            model_provider=request.model_provider,
+            model_name=request.model_name or "groq-llm-synthesis",
+            model_provider=request.model_provider or "groq",
             prompt_version=request.metadata.get("prompt_version"),
             evidence=evidence_for_supabase(context_response),
             recommendations=recommendations_for_supabase(request, context_response),
             metadata={
                 **(request.metadata or {}),
                 "status": "pending_review",
-                "synthesis_mode": "extractive" if not request.generated_answer else "external_llm",
+                "synthesis_mode": "llm" if not request.generated_answer else "external_llm",
             },
         )
     )
@@ -318,8 +374,8 @@ def synthesize(
         conversation_id=saved.conversation_id,
         query_id=saved.query_id,
         answer_text=answer_text,
-        citations=build_citations(context_response),
-        confidence=estimate_confidence(context_response),
+        citations=citations,
+        confidence=confidence,
         status="pending_review",
     )
 

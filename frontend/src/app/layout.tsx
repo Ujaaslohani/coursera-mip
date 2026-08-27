@@ -1,7 +1,11 @@
+// IMPORTS
 import type { Metadata } from "next";
 import "./globals.css";
 import { inter, sora } from "@/constants/fonts-config";
+import QueryProvider from "@/lib/query-provider";
+import { Toaster } from "@/components/ui/toaster";
 
+// METADATA
 export const metadata: Metadata = {
   title: "Multimodal Intelligence Platform",
   description: "Internal tool for tutors and employees.",
@@ -37,7 +41,13 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* PROVIDERS + APP SHELL */}
+      <body className="min-h-full flex flex-col">
+        <QueryProvider>
+          {children}
+          <Toaster />
+        </QueryProvider>
+      </body>
     </html>
   );
 }

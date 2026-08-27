@@ -21,6 +21,8 @@ class Settings:
     supabase_publishable_key: str | None
     supabase_secret_key: str | None
     supabase_jwks_url: str | None
+    groq_api_key: str | None
+    groq_model: str
     frontend_origins: list[str]
 
     def __init__(self) -> None:
@@ -49,6 +51,8 @@ class Settings:
         self.supabase_publishable_key = _optional_env("SUPABASE_PUBLISHABLE_KEY")
         self.supabase_secret_key = _optional_env("SUPABASE_SECRET_KEY")
         self.supabase_jwks_url = _optional_env("SUPABASE_JWKS_URL")
+        self.groq_api_key = _optional_env("GROQ_API_KEY")
+        self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
         self.frontend_origins = [
             origin.strip()
             for origin in os.getenv(

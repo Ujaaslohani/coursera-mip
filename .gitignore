@@ -14,7 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+
+# DO NOT ADD LIB FOLDER HERE / FRONTEND LIB FOLDER NEEDED TO BE IN THE PRODUCTION 
 lib64/
 parts/
 sdist/

@@ -5,12 +5,20 @@ from dotenv import load_dotenv
 from groq import Groq
 import instructor
 
-from schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
+try:
+    from schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
+except ImportError:
+    from RAG2.schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
 
 load_dotenv()
-# Initialize Groq client with instructor
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-client = instructor.from_groq(groq_client, mode=instructor.Mode.TOOLS)
+
+
+def _get_client():
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is not set in the environment.")
+    groq_client = Groq(api_key=api_key)
+    return instructor.from_groq(groq_client, mode=instructor.Mode.TOOLS)
 
 SYSTEM_PROMPT = """You are a grounded learning-analytics assistant for Coursera.
 
@@ -18,9 +26,10 @@ You will be given an educator's query and a list of evidence segments retrieved 
 
 STRICT INSTRUCTIONS:
 1. Base all explanations solely on the provided evidence. Do not extrapolate or fabricate facts.
-2. In `cited_segment_ids`, list ONLY the exact segment_id values (e.g., UUIDs or strings) that directly support your findings.
-3. If evidence is weak, incomplete, or does not mention the topic, provide low confidence (<0.5).
-4. `recommended_action` must be a clear pedagogical recommendation for course creators.
+2. In `friction_explanation` and `summary`, refer to lectures, slides, videos, or course concepts naturally. Do NOT output raw UUID hash strings in the prose.
+3. In `cited_segment_ids`, list ONLY the exact segment_id values (e.g., UUIDs or strings) that directly support your findings.
+4. If evidence is weak, incomplete, or does not mention the topic, provide low confidence (<0.5).
+5. `recommended_action` must be a clear pedagogical recommendation for course creators.
 """
 
 
@@ -53,6 +62,7 @@ def synthesize_insight(
     model_name = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
     # 1. Ask LLM to generate the reasoning and pick cited IDs
+    client = _get_client()
     synthesis: InsightSynthesis = client.chat.completions.create(
         model=model_name,
         response_model=InsightSynthesis,
@@ -83,9 +93,9 @@ def synthesize_insight(
         EvidenceSegment(
             segment_id=str(c["segment_id"]),
             source_id=str(c.get("source_id", "unknown")),
-            modality=c.get("modality", "text"),
+            modality=str(c.get("modality") or "text"),
             timestamp=str(c.get("timestamp") or ""),
-            excerpt=c["excerpt"],
+            excerpt=str(c.get("excerpt") or ""),
             confidence=float(c.get("score", 0.5)),
         )
         for c in selected_chunks
