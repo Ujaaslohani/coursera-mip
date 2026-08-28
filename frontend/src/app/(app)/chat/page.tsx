@@ -15,6 +15,9 @@ import { useConversations } from "@/hooks/query/use-conversations";
 import { useQueryClient } from "@tanstack/react-query";
 import { InsightMessageCard } from "@/components/chat/insight-message-card";
 import { type ChatMessage } from "@/types/chat.types";
+import { ChatBubble } from "@/components/chat/chat-bubble";
+import { ChatMessageList } from "@/components/chat/chat-message-list";
+import { ChatBottombar } from "@/components/chat/chat-bottombar";
 import {
   Clock,
   ExternalLink,
@@ -26,7 +29,9 @@ import {
   SendHorizonal,
   Sparkles,
 } from "lucide-react";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useConversationMessages } from "@/hooks/query/use-conversation-messages";
 
 function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return "Recently";
@@ -47,16 +52,28 @@ function formatTimeAgo(isoString?: string | null): string {
   }
 }
 
-const Chat = () => {
+const ChatContent = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const chatIdParam = searchParams.get("id");
+
   const [open, setOpen] = useState(false);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(chatIdParam);
   const [historySearch, setHistorySearch] = useState("");
 
   // CHAT STATE
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(chatIdParam);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync state if URL changes directly
+  useEffect(() => {
+    if (chatIdParam !== activeChatId) {
+      setActiveChatId(chatIdParam);
+      setConversationId(chatIdParam);
+    }
+  }, [chatIdParam]);
 
   const queryClient = useQueryClient();
 
@@ -66,6 +83,48 @@ const Chat = () => {
     isLoading: isHistoryLoading,
     isFetching: isHistoryFetching,
   } = useConversations(50);
+
+  // MESSAGES QUERY
+  const { data: serverMessages = [], isFetching: isMessagesFetching } = useConversationMessages(activeChatId);
+
+  // SYNC SERVER MESSAGES TO LOCAL STATE
+  useEffect(() => {
+    if (activeChatId && serverMessages.length > 0) {
+      const formattedMessages: ChatMessage[] = [];
+      serverMessages.forEach((query) => {
+        formattedMessages.push({ role: "user", content: query.query_text });
+        
+        if (query.generated_responses && query.generated_responses.length > 0) {
+          const response = query.generated_responses[0];
+          formattedMessages.push({
+            role: "assistant",
+            content: response.generated_answer,
+            insightId: response.response_id,
+            confidence: 0.9, 
+            citations: response.retrieval_evidence?.map((e: any) => ({
+              point_id: e.qdrant_record_id,
+              content_type: e.content_type,
+              lecture_id: e.lecture_id,
+              score: e.similarity_score,
+              text_preview: e.evidence_text
+            })) || [],
+            recommendedAction: response.recommendations?.length > 0 ? response.recommendations[0].recommendation_text : null,
+            isCurated: response.response_status === "pending" || response.response_status === "curated",
+            curatedSteps: response.recommendations?.map((r: any) => r.recommendation_text) || []
+          });
+        }
+      });
+      setMessages(formattedMessages);
+    } else if (activeChatId && serverMessages.length === 0 && !isMessagesFetching) {
+      // It might be a new chat or empty, but we shouldn't clear optimistic messages if they just got sent.
+      // Actually if activeChatId is set, it means we selected it. We only clear if it's truly empty from server.
+      if (messages.length > 0 && !messages.some(m => m.insightId)) {
+        // Keep optimistic messages
+      } else {
+         setMessages([]);
+      }
+    }
+  }, [serverMessages, activeChatId]);
 
   // SYNTHESIZE MUTATION
   const synthesize = useSynthesize();
@@ -96,6 +155,10 @@ const Chat = () => {
           // STORE CONVERSATION ID FOR FOLLOW-UPS
           if (!conversationId) setConversationId(data.conversation_id);
           setActiveChatId(data.conversation_id);
+          
+          if (activeChatId !== data.conversation_id) {
+            router.push(`?id=${data.conversation_id}`);
+          }
 
           // REFETCH CONVERSATION LIST IN BACKGROUND
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -108,6 +171,8 @@ const Chat = () => {
               content: data.answer_text,
               confidence: data.confidence,
               citations: data.citations,
+              insightId: data.insight_id,
+              recommendedAction: data.recommended_action,
             },
           ]);
         },
@@ -129,6 +194,7 @@ const Chat = () => {
     setConversationId(null);
     setActiveChatId(null);
     setOpen(false);
+    router.push("/chat");
   };
 
   const handleSelectChat = (id: string) => {
@@ -136,6 +202,7 @@ const Chat = () => {
     setConversationId(id);
     setMessages([]);
     setOpen(false);
+    router.push(`?id=${id}`);
   };
 
   // MAP SERVER CONVERSATIONS
@@ -265,7 +332,11 @@ const Chat = () => {
 
       {/* SCROLLABLE CHAT MESSAGES CONTAINER */}
       <main className="flex-1 overflow-y-auto space-y-4 pt-10 pr-1.5 custom-scrollbar">
-        {messages.length === 0 ? (
+        {isMessagesFetching && messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+             <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground text-sm gap-2 max-w-md mx-auto">
             <MessageSquare className="h-8 w-8 text-muted-foreground/50 mb-1" />
             <p className="font-medium text-foreground text-base">
@@ -292,71 +363,78 @@ const Chat = () => {
             </div>
           </div>
         ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex flex-col ${
-                msg.role === "user" ? "items-end" : "items-start"
-              }`}
-            >
-              {msg.role === "user" ? (
-                <div className="max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm bg-primary text-primary-foreground shadow-xs leading-relaxed">
-                  {msg.content}
-                </div>
-              ) : (
-                <div className="w-full max-w-[95%] md:max-w-[85%] rounded-2xl p-4 sm:p-5 text-sm bg-card border border-border/70 shadow-xs">
+          <ChatMessageList>
+            {messages.map((msg, idx) => (
+              <ChatBubble
+                key={idx}
+                variant={msg.role === "user" ? "sent" : "received"}
+                layout={msg.role === "user" ? "sent" : "received"}
+              >
+                {msg.role === "user" ? (
+                  msg.content
+                ) : (
                   <InsightMessageCard
                     content={msg.content}
                     confidence={msg.confidence}
                     citations={msg.citations}
+                    insightId={msg.insightId}
+                    recommendedAction={msg.recommendedAction}
+                    isCurated={msg.isCurated}
+                    curatedSteps={msg.curatedSteps}
+                    onCurated={(stepText?: string) => {
+                      setMessages((prev) =>
+                        prev.map((m, i) => {
+                          if (i === idx) {
+                            if (stepText) {
+                              return {
+                                ...m,
+                                isCurated: true,
+                                curatedSteps: [...(m.curatedSteps || []), stepText]
+                              };
+                            }
+                            return { ...m, isCurated: true };
+                          }
+                          return m;
+                        })
+                      );
+                    }}
                   />
+                )}
+              </ChatBubble>
+            ))}
+
+            {/* LOADING INDICATOR */}
+            {synthesize.isPending && (
+              <ChatBubble variant="received" layout="received">
+                <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                  <Loader className="h-3.5 w-3.5 animate-spin text-primary" />
+                  <span>
+                    Analyzing multimodal course evidence & synthesizing insights...
+                  </span>
                 </div>
-              )}
-            </div>
-          ))
-        )}
+              </ChatBubble>
+            )}
 
-        {/* LOADING INDICATOR */}
-        {synthesize.isPending && (
-          <div className="flex items-start">
-            <div className="flex items-center gap-2.5 text-xs text-muted-foreground bg-muted/40 border border-border/40 px-3.5 py-2.5 rounded-2xl">
-              <Loader className="h-3.5 w-3.5 animate-spin text-primary" />
-              <span>
-                Analyzing multimodal course evidence & synthesizing insights...
-              </span>
-            </div>
-          </div>
+            <div ref={messagesEndRef} />
+          </ChatMessageList>
         )}
-
-        <div ref={messagesEndRef} />
       </main>
 
       {/* INPUT FORM FOOTER */}
-      <footer className="pt-2">
-        <form onSubmit={handleSend} className="relative flex items-center">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question about course friction or student difficulties..."
-            disabled={synthesize.isPending}
-            className="pr-12 py-5 rounded-full border-border/80 bg-card shadow-xs focus-visible:ring-primary text-sm"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            disabled={!input.trim() || synthesize.isPending}
-            className="absolute right-1.5 h-8 w-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-all cursor-pointer"
-          >
-            {synthesize.isPending ? (
-              <Loader className="h-4 w-4 animate-spin" />
-            ) : (
-              <SendHorizonal className="h-4 w-4" />
-            )}
-          </Button>
-        </form>
-      </footer>
+      <ChatBottombar
+        input={input}
+        handleInputChange={(e) => setInput(e.target.value)}
+        handleSubmit={handleSend}
+        isLoading={synthesize.isPending}
+      />
     </section>
   );
 };
 
-export default Chat;
+export default function Chat() {
+  return (
+    <Suspense fallback={<div className="p-8 flex justify-center"><Loader className="animate-spin h-6 w-6" /></div>}>
+      <ChatContent />
+    </Suspense>
+  );
+}

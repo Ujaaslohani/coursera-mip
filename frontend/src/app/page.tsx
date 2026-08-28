@@ -2,32 +2,49 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { type LoginFormValues } from "@/types/login.types";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // TODO: INTEGRATE THE REAL API FROM THE HOOKS AFTER INTEGRATION
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+    mode: "onTouched",
+  });
 
-    if (!email.trim() || !password.trim()) {
-      setErrorMessage("Please enter both email and password.");
-      return;
+  const onSubmit = async (_data: LoginFormValues) => {
+    setErrorMessage("");
+    setIsLoading(true);
+    try {
+      // Navigate to dashboard
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to sign in.";
+      setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const isProcessing = isSubmitting || isLoading;
 
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between bg-background text-foreground selection:bg-primary/20 selection:text-primary">
@@ -59,39 +76,47 @@ export default function LoginPage() {
             )}
 
             {/* FORM */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* EMAIL FIELD */}
-              <div className="space-y-1.5">
-                <Label
+              <Field data-invalid={!!errors.email} className="space-y-1.5">
+                <FieldLabel
                   htmlFor="email"
                   className="text-xs font-semibold tracking-wider text-muted-foreground"
                 >
                   Email Address
-                </Label>
+                </FieldLabel>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="name@coursera.org"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
                     autoComplete="email"
+                    aria-invalid={!!errors.email}
                     className="h-10 pl-9.5 text-sm bg-background border-input focus-visible:border-primary focus-visible:ring-primary/20"
+                    {...register("email", {
+                      required: "Email address is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Please enter a valid email address",
+                      },
+                    })}
                   />
                 </div>
-              </div>
+                {errors.email?.message && (
+                  <FieldError>{errors.email.message}</FieldError>
+                )}
+              </Field>
 
               {/* PASSWORD FIELD */}
-              <div className="space-y-1.5">
+              <Field data-invalid={!!errors.password} className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label
+                  <FieldLabel
                     htmlFor="password"
                     className="text-xs font-semibold tracking-wider text-muted-foreground"
                   >
                     Password
-                  </Label>
+                  </FieldLabel>
                   <a
                     href="#forgot-password"
                     onClick={(e) => {
@@ -111,16 +136,21 @@ export default function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
                     autoComplete="current-password"
+                    aria-invalid={!!errors.password}
                     className="h-10 pl-9.5 pr-10 text-sm bg-background border-input focus-visible:border-primary focus-visible:ring-primary/20"
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
+                    })}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded focus:outline-hidden"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded focus:outline-hidden cursor-pointer"
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
@@ -132,25 +162,27 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
-              </div>
+                {errors.password?.message && (
+                  <FieldError>{errors.password.message}</FieldError>
+                )}
+              </Field>
 
               {/* REMEMBER ME CHECKBOX */}
               <div className="flex items-center justify-between pt-1">
                 <Checkbox
                   id="remember-me"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
                   label="Remember my session"
+                  {...register("rememberMe")}
                 />
               </div>
 
               {/* SIGN IN BUTTON */}
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={isProcessing}
                 className="w-full h-10 font-semibold text-sm bg-primary hover:bg-primary-hover text-primary-foreground cursor-pointer mt-2"
               >
-                {isLoading ? (
+                {isProcessing ? (
                   <span className="flex items-center gap-2">
                     <span className="size-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     Signing in...

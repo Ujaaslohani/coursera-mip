@@ -4,13 +4,17 @@ import React, { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
-import { DataTableProps } from "@/types";
-import { RowData, useTable } from "@tanstack/react-table";
-import { features } from "@/constants/processing-table-features";
+import { ColumnDef, RowData, useTable } from "@tanstack/react-table";
+import { DataTableFeatures, features } from "@/constants/processing-table-features";
+
+export interface DataTableProps<TData extends RowData> {
+  columns: ColumnDef<DataTableFeatures, TData>[];
+  data: TData[];
+}
 
 export function DataTable<TData extends RowData>({
-    columns,
-    data
+  columns,
+  data,
 }: DataTableProps<TData>) {
     const [globalFilter, setGlobalFilter] = useState("");
 

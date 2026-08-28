@@ -5,33 +5,106 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Recommendation } from "@/types";
-import { mockRecommendations } from "@/temp-data/recommendations-data";
-import { RefreshCw } from "lucide-react";
-import { RecommendationCard } from "./recommendation-card";
-import { RecommendationSheet } from "./recommendation-sheet";
+import { useRecommendations } from "@/hooks/query/use-recommendations";
+import { useQueryClient } from "@tanstack/react-query";
+import api from "@/api/axios";
+import { RefreshCw, Loader } from "lucide-react";
+import { RecommendationCard } from "@/components/recommendations/recommendation-card";
+import { RecommendationSheet } from "@/components/recommendations/recommendation-sheet";
+
+/**
+ * Maps a raw Supabase recommendation row to the frontend Recommendation shape.
+ */
+function mapToRecommendation(raw: any): Recommendation {
+  const metadata = raw.metadata || {};
+  const generatedResponse = raw.generated_responses || {};
+  const userQuery = generatedResponse.user_queries || {};
+  const evidenceList: any[] = generatedResponse.retrieval_evidence || [];
+
+  return {
+    id: raw.recommendation_id || raw.id || "",
+    title: metadata.title || raw.recommendation_text?.slice(0, 80) || "Untitled",
+    queryBy: userQuery.query_text || "system",
+    category: raw.recommendation_type || "content_review",
+    description: raw.recommendation_text || "",
+    timestamp: raw.created_at
+      ? new Date(raw.created_at).toLocaleDateString()
+      : "Recently",
+    status: generatedResponse.response_status === "pending"
+      ? "pending"
+      : generatedResponse.response_status === "accepted"
+        ? "applied"
+        : generatedResponse.response_status === "rejected"
+          ? "rejected"
+          : "curated",
+    suggestedAction: raw.recommendation_text,
+    citations: evidenceList.map((ev: any) => ({
+      id: ev.qdrant_record_id || "",
+      type: ev.content_type || "transcript",
+      quote: ev.evidence_text || "",
+      explanation: `Relevance: ${Math.round((ev.similarity_score || 0) * 100)}% • Rank #${ev.retrieval_rank || "—"}`,
+    })),
+  };
+}
 
 export default function RecommendationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [recommendations, setRecommendations] =
-    useState<Recommendation[]>(mockRecommendations);
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<Recommendation | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // TODO: IMPLEMENT THE BACKEND API
-  const handleLoad = () => {};
+  const queryClient = useQueryClient();
+  const {
+    data: rawRecommendations = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useRecommendations(50);
+
+  // Map raw Supabase rows to Recommendation shape
+  const recommendations: Recommendation[] = rawRecommendations.map(mapToRecommendation);
 
   const handleSelectRecommendation = (item: Recommendation) => {
     setSelectedRecommendation(item);
     setNoteText(item.note || "");
   };
 
-  // TODO: IMPLEMENT THE BACKEND API
-  const handleAccept = () => {};
+  const handleAccept = async () => {
+    if (!selectedRecommendation || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await api.post("/api/review-feedback", {
+        response_id: selectedRecommendation.id,
+        decision: "accepted",
+        notes: noteText || undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+      setSelectedRecommendation(null);
+    } catch (err) {
+      console.error("Failed to accept recommendation:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  // TODO: IMPLEMENT THE BACKEND API
-  const handleReject = () => {};
+  const handleReject = async () => {
+    if (!selectedRecommendation || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await api.post("/api/review-feedback", {
+        response_id: selectedRecommendation.id,
+        decision: "rejected",
+        notes: noteText || undefined,
+      });
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+      setSelectedRecommendation(null);
+    } catch (err) {
+      console.error("Failed to reject recommendation:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredRecommendations = recommendations.filter((item) => {
     const query = searchQuery.toLowerCase();
@@ -61,27 +134,50 @@ export default function RecommendationsPage() {
           className="h-9 text-sm"
         />
         <Button
-          onClick={handleLoad}
-          disabled={isLoading}
+          onClick={() => refetch()}
+          disabled={isLoading || isFetching}
           className="h-9 gap-1.5 px-4 shrink-0"
         >
           <RefreshCw
-            className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+            className={
+              isLoading || isFetching
+                ? "h-4 w-4 animate-spin"
+                : "h-4 w-4"
+            }
           />
-          {isLoading ? "Loading..." : "Load"}
+          {isLoading || isFetching ? "Loading..." : "Refresh"}
         </Button>
       </div>
 
+      {/* LOADING STATE */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16 gap-2 text-sm text-muted-foreground">
+          <Loader className="h-4 w-4 animate-spin text-primary" />
+          <span>Loading curated recommendations...</span>
+        </div>
+      )}
+
+      {/* EMPTY STATE */}
+      {!isLoading && filteredRecommendations.length === 0 && (
+        <div className="text-center py-16 text-sm text-muted-foreground">
+          {searchQuery
+            ? "No recommendations match your search."
+            : "No curated recommendations yet. Use the chat to generate insights and add them here."}
+        </div>
+      )}
+
       {/* RECOMMENDATIONS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredRecommendations.map((item) => (
-          <RecommendationCard
-            key={item.id}
-            item={item}
-            onSelect={handleSelectRecommendation}
-          />
-        ))}
-      </div>
+      {!isLoading && filteredRecommendations.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRecommendations.map((item) => (
+            <RecommendationCard
+              key={item.id}
+              item={item}
+              onSelect={handleSelectRecommendation}
+            />
+          ))}
+        </div>
+      )}
 
       {/* SELECTED RECOMMENDATION DETAIL SHEET */}
       <RecommendationSheet

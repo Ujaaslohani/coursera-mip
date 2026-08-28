@@ -297,6 +297,7 @@ class SynthesizeResponse(BaseModel):
     conversation_id: str
     query_id: str
     answer_text: str
+    recommended_action: str | None = None
     citations: list[Citation]
     confidence: float
     status: str = "pending_review"
@@ -319,3 +320,19 @@ class ReviewFeedbackRequest(BaseModel):
     rating: int | None = Field(default=None, ge=1, le=5)
     is_helpful: bool | None = None
     user_id: str | None = None
+
+
+class CurateRecommendationRequest(BaseModel):
+    insight_id: str
+    title: str = Field(..., min_length=1)
+    category: str = "content_review"
+    recommendation_text: str
+    priority: int = 1
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CurateRecommendationResponse(BaseModel):
+    recommendation_id: str
+    insight_id: str
+    status: str = "curated"
+    message: str = "Recommendation added to curation list successfully"

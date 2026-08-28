@@ -1,5 +1,3 @@
-import { DataTableFeatures } from "@/constants/processing-table-features";
-import { type ColumnDef, type RowData } from "@tanstack/react-table";
 import type { ComponentType } from "react";
 
 // INTERFACE FOR THE NAVIGATIONS 
@@ -10,20 +8,14 @@ export interface NavItem {
   badge?: string;
 }
 
-
 // TYPE AND INTERFACE FOR PROCESSING TABLE
 export type Processing = {
-    mode: string
-    topic: string
-    owner: string
-    stage: string
-    assetId: string
-}
-
-export interface DataTableProps<TData extends RowData> {
-  columns: ColumnDef<DataTableFeatures, TData>[]
-  data: TData[]
-}
+  mode: string;
+  topic: string;
+  owner: string;
+  stage: string;
+  assetId: string;
+};
 
 export interface Citation {
   id: string;
@@ -97,5 +89,6 @@ export interface DashboardData {
 }
 
 export * from "./chat.types";
-
-
+export * from "./asset.types";
+export * from "./login.types";
+export * from "./recommendation.types";

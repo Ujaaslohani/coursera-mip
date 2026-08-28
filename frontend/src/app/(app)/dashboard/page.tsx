@@ -8,10 +8,10 @@ import {
   pipelineHealthData,
   processingMonitorData,
 } from "@/temp-data/dashboard-data";
-import { StatsCards } from "./stats-cards";
-import { RecommendationStats } from "./recommendation-stats";
-import { PipelineHealthCard } from "./pipeline-health";
-import { ProcessingMonitorTable } from "./processing-monitor";
+import { StatsCards } from "@/components/dashboard/stats-cards";
+import { RecommendationStats } from "@/components/dashboard/recommendation-stats";
+import { PipelineHealthCard } from "@/components/dashboard/pipeline-health";
+import { ProcessingMonitorTable } from "@/components/dashboard/processing-monitor";
 import { RefreshCw } from "lucide-react";
 
 export default function DashboardPage() {
