@@ -1,8 +1,8 @@
 # Coursera MIP Backend
 
-FastAPI backend for fetching, inspecting, and semantically querying records from the existing Qdrant collection, plus saving application activity to Supabase.
+FastAPI backend for orchestrating the advanced `RAG2` retrieval/synthesis pipeline and saving application activity to Supabase.
 
-Current backend status: **Qdrant retrieval is done. Supabase application persistence is done.** Media processing and embedding-refresh jobs are still pending.
+Current backend status: **RAG2 retrieval/synthesis delegation is done. Supabase application persistence is done.** Media processing and embedding-refresh jobs are still pending.
 
 ## Setup
 
@@ -67,7 +67,7 @@ This verifies:
 ```text
 Supabase schema health
 conversation insert
-Qdrant semantic context retrieval
+RAG/Qdrant context retrieval
 query/response/evidence/recommendation insert
 feedback insert
 dashboard aggregation
@@ -200,7 +200,7 @@ Response: same shape as `GET /api/qdrant/records/{point_id}`.
 
 ### `POST /api/query`
 
-Embeds the user question with `BAAI/bge-base-en-v1.5` and performs semantic vector search in Qdrant.
+Delegates retrieval to `RAG2.retreival.pipeline`, which owns hybrid retrieval, BM25, vector retrieval, fusion, and reranking. Requires `COHERE_API_KEY`.
 
 Request:
 
@@ -216,9 +216,7 @@ Request body:
 {
   "query": "learners are confused about adversarial training",
   "top_k": 2,
-  "filters": {
-    "content_type": "caption"
-  }
+  "filters": {}
 }
 ```
 
@@ -247,7 +245,7 @@ Response:
 
 ### `POST /api/context`
 
-Runs semantic search and returns normalized, LLM-ready evidence. This is the best endpoint for the LLM layer.
+Delegates retrieval to `RAG2.retreival.pipeline` and returns normalized, LLM-ready evidence. Requires `COHERE_API_KEY`.
 
 Request:
 
@@ -726,7 +724,7 @@ Response:
 
 ### `POST /api/synthesize`
 
-Creates a grounded insight. If `generated_answer` is provided by the LLM layer, the backend stores it. If not, the backend creates an extractive evidence summary from Qdrant context. The result is persisted to Supabase.
+Creates a grounded insight by calling `RAG2.synthesis.synthesize_insight`. There is no backend static fallback. Requires `COHERE_API_KEY` when retrieval is needed and `GROQ_API_KEY` for synthesis. The result is persisted to Supabase.
 
 Request body:
 
@@ -737,7 +735,6 @@ Request body:
   "session_id": "frontend-session-id",
   "top_k": 5,
   "filters": {},
-  "generated_answer": null,
   "metadata": {
     "normalized_topic": "adversarial training"
   }
@@ -751,7 +748,7 @@ Response:
   "insight_id": "uuid",
   "conversation_id": "uuid",
   "query_id": "uuid",
-  "answer_text": "Retrieved evidence...",
+  "answer_text": "Summary: ...",
   "citations": [
     {
       "point_id": "qdrant-point-id",
@@ -820,8 +817,8 @@ All original route names now exist.
 | `GET /api/processing-jobs/{job_id}` | Reads job status from the backend-local operations store. |
 | `POST /api/processing-jobs/{job_id}/archive` | Archives a backend-local job record. |
 | `POST /api/embeddings` | Verifies existing Qdrant points use the expected embedding model/dimensions. It does not mutate Qdrant vectors. |
-| `POST /api/query` | Runs BGE query embedding and Qdrant semantic retrieval. |
-| `POST /api/synthesize` | Builds a grounded extractive insight from retrieved evidence, or stores `generated_answer` from the LLM layer, then persists it to Supabase. |
+| `POST /api/query` | Delegates to `RAG2.retreival.pipeline`; backend no longer has duplicate dense search. |
+| `POST /api/synthesize` | Delegates to `RAG2.synthesis.synthesize_insight`; backend no longer has static synthesis fallback. |
 | `GET /api/insights` | Lists generated Supabase responses. |
 | `GET /api/insights/{insight_id}` | Reads a generated response plus query, evidence, recommendations, and feedback from Supabase. |
 | `GET /api/segments/{segment_id}` | Fetches one Qdrant point by ID. |
@@ -846,4 +843,4 @@ That file is ignored by git. For production deployment, add these optional Supab
 
 Qdrant vector mutation is intentionally not performed by `POST /api/embeddings` yet. The endpoint validates existing indexed points. A true embedding refresh should be added only when the backend owns source text, deterministic point IDs, payload schema validation, and a safe Qdrant upsert policy.
 
-For now, the backend can retrieve evidence from Qdrant, persist full RAG activity to Supabase, expose insights/reviews, and provide the original endpoint names needed by the frontend and LLM layer.
+For now, the backend can orchestrate RAG2 retrieval/synthesis, persist full RAG activity to Supabase, expose insights/reviews, and provide the original endpoint names needed by the frontend and LLM layer.

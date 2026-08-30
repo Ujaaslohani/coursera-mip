@@ -277,9 +277,8 @@ class SynthesizeRequest(BaseModel):
     retrieved_evidence: list[EvidenceContext] = Field(default_factory=list)
     top_k: int = Field(default=5, ge=1, le=25)
     filters: dict[str, Any] = Field(default_factory=dict)
-    generated_answer: str | None = None
-    model_name: str | None = "backend-extractive-synthesis"
-    model_provider: str | None = "backend"
+    model_name: str | None = "RAG2.synthesis"
+    model_provider: str | None = "groq"
     recommendations: list[RecommendationSaveItem] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

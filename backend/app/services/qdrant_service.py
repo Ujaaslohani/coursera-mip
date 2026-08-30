@@ -4,18 +4,13 @@ from typing import Any
 from fastapi import HTTPException
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
-from qdrant_client.models import FieldCondition, Filter, MatchValue
-from sentence_transformers import SentenceTransformer
 
 from app.config import Settings, get_settings
 from app.models import (
     AssetListResponse,
     AssetSummary,
     CollectionResponse,
-    ContextResponse,
     EmbeddingRefreshResponse,
-    EvidenceContext,
-    EvidenceResult,
     MetadataOptionsResponse,
     MetricsResponse,
     RecordResponse,
@@ -51,13 +46,6 @@ class QdrantService:
             timeout=60,
             check_compatibility=False,
         )
-        self._embedding_model: SentenceTransformer | None = None
-
-    @property
-    def embedding_model(self) -> SentenceTransformer:
-        if self._embedding_model is None:
-            self._embedding_model = SentenceTransformer(self.settings.embedding_model)
-        return self._embedding_model
 
     def get_collection(self) -> CollectionResponse:
         try:
@@ -174,84 +162,6 @@ class QdrantService:
             details=details,
         )
 
-    def semantic_search(
-        self, query: str, top_k: int, filters: dict[str, Any] | None = None
-    ) -> list[EvidenceResult]:
-        query_vector = self.embedding_model.encode(
-            query,
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        ).tolist()
-
-        if len(query_vector) != self.settings.embedding_dimensions:
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    f"Embedding dimension mismatch: got {len(query_vector)}, "
-                    f"expected {self.settings.embedding_dimensions}"
-                ),
-            )
-
-        query_filter = _build_filter(filters or {})
-
-        try:
-            points = self.client.search(
-                collection_name=self.settings.qdrant_collection,
-                query_vector=query_vector,
-                query_filter=query_filter,
-                limit=top_k,
-                with_payload=True,
-                with_vectors=False,
-            )
-        except AttributeError:
-            points = self.client.query_points(
-                collection_name=self.settings.qdrant_collection,
-                query=query_vector,
-                query_filter=query_filter,
-                limit=top_k,
-                with_payload=True,
-                with_vectors=False,
-            ).points
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502, detail=f"Could not search Qdrant: {exc}"
-            ) from exc
-
-        return [
-            EvidenceResult(
-                id=str(point.id),
-                score=getattr(point, "score", None),
-                text=_extract_text(point.payload or {}),
-                payload=point.payload or {},
-            )
-            for point in points
-        ]
-
-    def build_context(
-        self, query: str, top_k: int, filters: dict[str, Any] | None = None
-    ) -> ContextResponse:
-        results = self.semantic_search(query=query, top_k=top_k, filters=filters)
-        context = [
-            EvidenceContext(
-                point_id=result.id,
-                score=result.score,
-                source_id=_payload_str(result.payload, "source_id"),
-                asset_id=_payload_str(result.payload, "asset_id"),
-                content_type=_payload_str(result.payload, "content_type"),
-                course_id=_payload_str(result.payload, "course_id"),
-                lecture_id=_payload_str(result.payload, "lecture_id"),
-                timestamp=_timestamp(result.payload),
-                text=result.text,
-                payload=result.payload,
-            )
-            for result in results
-        ]
-        return ContextResponse(
-            query=query,
-            evidence_count=len(context),
-            context=context,
-        )
-
     def metadata_options(self, scan_limit: int) -> MetadataOptionsResponse:
         records = self._scroll_payloads(scan_limit)
         return MetadataOptionsResponse(
@@ -355,19 +265,6 @@ class QdrantService:
 
     def _scroll_payloads(self, scan_limit: int) -> list[dict[str, Any]]:
         return [record.payload for record in self._scroll_records(scan_limit)]
-
-
-def _build_filter(filters: dict[str, Any]) -> Filter | None:
-    if not filters:
-        return None
-
-    return Filter(
-        must=[
-            FieldCondition(key=key, match=MatchValue(value=value))
-            for key, value in filters.items()
-            if value is not None
-        ]
-    )
 
 
 def _extract_text(payload: dict[str, Any]) -> str:
