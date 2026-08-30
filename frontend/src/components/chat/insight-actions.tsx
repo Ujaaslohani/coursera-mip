@@ -7,7 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Plus, Check, Loader } from "lucide-react"
+import { Plus, Check } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import { parseActionSteps, renderProseWithHoverSegmentBadges } from "./insight-utils"
 import { useCurateRecommendation } from "@/hooks/mutations/use-curate-recommendation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -177,7 +178,7 @@ const CurateStepButton: React.FC<CurateStepButtonProps> = ({
         title="Add to recommendations"
       >
         {curate.isPending ? (
-          <Loader className="h-3 w-3 animate-spin" />
+          <Spinner className="h-3 w-3" />
         ) : (
           <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
         )}

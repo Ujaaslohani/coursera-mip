@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { FormInputField } from "@/components/ui/form-input-field";
@@ -181,7 +181,8 @@ export default function NewRegister() {
               required: "Storage URL is required",
               pattern: {
                 value: /^https?:\/\/.+/i,
-                message: "Please enter a valid URL (starting with http:// or https://)",
+                message:
+                  "Please enter a valid URL (starting with http:// or https://)",
               },
             })}
           />
@@ -198,7 +199,7 @@ export default function NewRegister() {
             <Button type="submit" disabled={isProcessing}>
               {isProcessing ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Spinner className="h-4 w-4 mr-2" />
                   Registering & Starting Ingestion...
                 </>
               ) : (
@@ -221,7 +222,7 @@ export default function NewRegister() {
         </div>
         {isTableLoading ? (
           <div className="flex items-center justify-center h-32 text-sm text-muted-foreground gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner className="h-4 w-4 text-muted-foreground" />
             Loading registered assets...
           </div>
         ) : (

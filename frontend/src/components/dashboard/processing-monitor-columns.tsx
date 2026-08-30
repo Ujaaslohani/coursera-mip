@@ -14,8 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Loader2,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 const columnHelper =
   createColumnHelper<DataTableFeatures, ProcessingMonitorItem>();
@@ -50,7 +50,7 @@ const getStatusBadge = (status: string) => {
     case "in_progress":
       return (
         <Badge variant="info" className="gap-1 text-[11px] font-normal">
-          <Loader2 className="w-3 h-3 animate-spin" />
+          <Spinner className="w-3 h-3" />
           Processing
         </Badge>
       );
