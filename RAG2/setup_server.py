@@ -1,3 +1,4 @@
+# Setting up a MCP server 
 from fastmcp import FastMCP
 from schema import InsightRecommendation
 from retreival import pipeline
