@@ -3,7 +3,8 @@
 import React from "react"
 import { useCurateRecommendation } from "@/hooks/mutations/use-curate-recommendation"
 import { useQueryClient } from "@tanstack/react-query"
-import { Plus, Check, Loader } from "lucide-react"
+import { Plus, Check } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 
 export interface CurateButtonProps {
   insightId?: string;
@@ -80,7 +81,7 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
       >
         {curate.isPending ? (
           <>
-            <Loader className="h-3.5 w-3.5 animate-spin" />
+            <Spinner className="h-3.5 w-3.5" />
             <span>Adding...</span>
           </>
         ) : (

@@ -2,9 +2,7 @@ import type { NavItem } from "@/types";
 import {
   LayoutDashboard,
   Lightbulb,
-  ScrollText,
   ServerPlus,
-  Settings,
   Sparkles,
 } from "lucide-react";
 
@@ -29,10 +27,5 @@ export const navMain: NavItem[] = [
     title: "Recommendations",
     url: "/recommendations",
     icon: Lightbulb,
-  },
-  {
-    title: "Operations",
-    url: "/operations",
-    icon: Settings,
   },
 ];

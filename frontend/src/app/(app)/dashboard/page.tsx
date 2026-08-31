@@ -13,6 +13,7 @@ import { RecommendationStats } from "@/components/dashboard/recommendation-stats
 import { PipelineHealthCard } from "@/components/dashboard/pipeline-health";
 import { ProcessingMonitorTable } from "@/components/dashboard/processing-monitor";
 import { RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -45,9 +46,11 @@ export default function DashboardPage() {
             disabled={isRefreshing}
             className="h-9 gap-1.5 px-3.5"
           >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
-            />
+            {isRefreshing ? (
+              <Spinner className="w-3.5 h-3.5" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
             {isRefreshing ? "Syncing..." : "Sync"}
           </Button>
         </div>

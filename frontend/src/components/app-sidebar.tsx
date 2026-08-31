@@ -111,7 +111,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors p-1.5 cursor-pointer"
+              render={<Link href="/profile" />}
+              isActive={pathname === "/profile"}
+              tooltip="View Profile"
+              className={`w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-colors p-1.5 cursor-pointer ${
+                pathname === "/profile"
+                  ? "bg-primary/10 text-primary dark:bg-sidebar-accent dark:text-sidebar-accent-foreground font-semibold"
+                  : ""
+              }`}
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-xs shadow-xs">
                 N
