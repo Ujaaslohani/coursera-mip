@@ -1,11 +1,12 @@
 # Retreival of relevant documents from Database using hybrid search, rank fusion and cohere reranking
+import os
 import re
 from typing import List, Tuple
 from dotenv import load_dotenv
 
 from qdrant_client import QdrantClient
 from langchain_qdrant import QdrantVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
@@ -52,12 +53,13 @@ class RetrievalPipeline:
 
     def __init__(self, collection_name: str = "COURSEERA_ALMAX_MULTIMODAL"):
         self.collection_name = collection_name
-        self.qdrant_url =os.getenv("QDRANT_URL")
-        self.qdrant_api_key= os.getenv("QDRANT_API_KEY")
+        self.qdrant_url = os.getenv("QDRANT_URL")
+        self.qdrant_api_key = os.getenv("QDRANT_API_KEY")
 
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-base-en-v1.5",
-            encode_kwargs={"normalize_embeddings": True},
+        # Serverless Cloud API (Uses ~0 MB server RAM)
+        self.embeddings = HuggingFaceEndpointEmbeddings(
+            model="BAAI/bge-base-en-v1.5",
+            huggingfacehub_api_token=os.getenv("HF_TOKEN"),
         )
         self.client = QdrantClient(
             url=self.qdrant_url, api_key=self.qdrant_api_key, check_compatibility=False
