@@ -8,7 +8,7 @@ import instructor
 try:
     from schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
 except ImportError:
-    from RAG2.schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
+    from rag.schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
 
 load_dotenv()
 

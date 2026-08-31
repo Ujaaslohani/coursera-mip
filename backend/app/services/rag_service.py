@@ -93,7 +93,7 @@ class RagService:
                 recommendation_text=insight.recommended_action,
                 target_record_id=citations[0].point_id if citations else None,
                 priority=1,
-                metadata={"source": "RAG2.synthesis"},
+                metadata={"source": "rag.synthesis"},
             )
         ]
 
@@ -130,11 +130,11 @@ class RagService:
 
         self._prepare_rag_imports()
         try:
-            from RAG2.retreival import pipeline
+            from rag.retreival import pipeline
         except Exception as exc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Could not import RAG2 retrieval pipeline: {exc}",
+                detail=f"Could not import rag retrieval pipeline: {exc}",
             ) from exc
 
         self._pipeline = pipeline
@@ -147,11 +147,11 @@ class RagService:
 
         self._prepare_rag_imports()
         try:
-            from RAG2.synthesis import synthesize_insight
+            from rag.synthesis import synthesize_insight
         except Exception as exc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Could not import RAG2 synthesis: {exc}",
+                detail=f"Could not import rag synthesis: {exc}",
             ) from exc
 
         self._synthesize_insight = synthesize_insight
@@ -160,7 +160,7 @@ class RagService:
     def _prepare_rag_imports(self) -> None:
         if str(self.repo_root) not in sys.path:
             sys.path.insert(0, str(self.repo_root))
-        # RAG2.retreival currently references os without importing it.
+        # rag.retreival currently references os without importing it.
         if not hasattr(builtins, "os"):
             builtins.os = os
 
@@ -213,7 +213,7 @@ class RagService:
                 "source_id": item.source_id,
                 "asset_id": item.asset_id,
                 "course_id": item.course_id,
-                "provider": "RAG2",
+                "provider": "rag",
             },
         )
 

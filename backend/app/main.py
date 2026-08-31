@@ -9,7 +9,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="Coursera Multimodal Intelligence Backend",
-    description="Backend API for RAG2 retrieval/synthesis orchestration and persistence.",
+    description="Backend API for rag retrieval/synthesis orchestration and persistence.",
     version="0.2.0",
 )
 

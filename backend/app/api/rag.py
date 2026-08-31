@@ -64,7 +64,7 @@ def synthesize(
             generated_answer=answer_text,
             normalized_topic=request.metadata.get("normalized_topic"),
             detected_intent=request.metadata.get("detected_intent", "synthesis"),
-            model_name=request.model_name or "RAG2.synthesis",
+            model_name=request.model_name or "rag.synthesis",
             model_provider=request.model_provider or "groq",
             prompt_version=request.metadata.get("prompt_version"),
             evidence=evidence,
@@ -72,8 +72,8 @@ def synthesize(
             metadata={
                 **(request.metadata or {}),
                 "status": "completed",
-                "retrieval_provider": "RAG2.retreival",
-                "synthesis_provider": "RAG2.synthesis",
+                "retrieval_provider": "rag.retreival",
+                "synthesis_provider": "rag.synthesis",
             },
         )
     )

@@ -1,7 +1,7 @@
 from .schema import EvidenceSegment, InsightRecommendation, InsightSynthesis
 from .synthesis import synthesize_insight
 
-# MAKE THE RAG2 IMPORTABLE PACKAGE 
+# MAKE THE RAG IMPORTABLE PACKAGE
 __all__ = [
     "EvidenceSegment",
     "InsightRecommendation",
