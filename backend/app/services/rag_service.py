@@ -24,7 +24,7 @@ from app.models import (
 class RagService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.repo_root = Path(__file__).resolve().parents[3]
+        self.backend_root = Path(__file__).resolve().parents[2]
         self._pipeline = None
         self._synthesize_insight = None
 
@@ -158,8 +158,8 @@ class RagService:
         return self._synthesize_insight
 
     def _prepare_rag_imports(self) -> None:
-        if str(self.repo_root) not in sys.path:
-            sys.path.insert(0, str(self.repo_root))
+        if str(self.backend_root) not in sys.path:
+            sys.path.insert(0, str(self.backend_root))
         # rag.retreival currently references os without importing it.
         if not hasattr(builtins, "os"):
             builtins.os = os
