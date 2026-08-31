@@ -1,4 +1,4 @@
-# Retreival of relevant documents from Database using hybrid search, rank fusion and cohere reranking
+# Retreival of relevant documents from Database using hybrid search, rank fusion and Cohere Re-ranking
 import os
 import re
 from typing import List, Tuple
