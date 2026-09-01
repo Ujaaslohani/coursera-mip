@@ -1,15 +1,5 @@
-import axios from "axios";
+import api, { API_BASE_URL, API_TIMEOUT } from "@/api/axios";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export { API_BASE_URL, API_TIMEOUT };
+export default api;
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 30_000,
-});
-
-export { API_BASE_URL };
-export default apiClient;
