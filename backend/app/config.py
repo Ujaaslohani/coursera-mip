@@ -56,7 +56,8 @@ class Settings:
         self.frontend_origins = [
             origin.strip()
             for origin in os.getenv(
-                "FRONTEND_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+                "FRONTEND_ORIGINS",
+                "http://localhost:3000,http://127.0.0.1:3000,https://coursera-mip.vercel.app",
             ).split(",")
             if origin.strip()
         ]
