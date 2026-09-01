@@ -11,11 +11,18 @@ export type { CurateRecommendationRequest, CurateRecommendationResponse };
 export const useCurateRecommendation = () => {
   return useMutation({
     mutationFn: async (payload: CurateRecommendationRequest) => {
+      console.log("[useCurateRecommendation] Curating recommendation:", payload);
       const { data } = await api.post<CurateRecommendationResponse>(
         "/api/recommendations",
         payload
       );
       return data;
+    },
+    onSuccess: (data) => {
+      console.log("[useCurateRecommendation] Curated recommendation successfully:", data);
+    },
+    onError: (error) => {
+      console.error("[useCurateRecommendation] Failed to curate recommendation:", error);
     },
   });
 };

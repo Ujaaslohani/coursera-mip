@@ -16,6 +16,7 @@ export const useRegisterAsset = () => {
 
   return useMutation({
     mutationFn: async (payload: RegisterAndProcessPayload): Promise<RegisterAndProcessResult> => {
+      console.log("[useRegisterAsset] Initiating registration for:", payload);
       // 1. REGISTER THE ASSET IN BACKEND
       const registerPayload: AssetRegisterRequest = {
         storage_url: payload.storageUrl,
@@ -34,6 +35,7 @@ export const useRegisterAsset = () => {
         "/api/assets",
         registerPayload
       );
+      console.log("[useRegisterAsset] Asset registered:", assetData);
 
       // 2. START THE PROCESSING/INGESTION JOB FOR THE ASSET
       const { data: jobData } = await api.post<ProcessingJobResponse>(
@@ -42,15 +44,20 @@ export const useRegisterAsset = () => {
           asset_id: assetData.asset_id,
         }
       );
+      console.log("[useRegisterAsset] Ingestion job started:", jobData);
 
       return {
         asset: assetData,
         job: jobData,
       };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("[useRegisterAsset] Asset registration & ingestion successfully scheduled:", data);
       // INVALIDATE REGISTERED ASSETS LIST TO REFRESH TABLE
       queryClient.invalidateQueries({ queryKey: ["registered-assets"] });
+    },
+    onError: (error) => {
+      console.error("[useRegisterAsset] Asset registration failed:", error);
     },
   });
 };
