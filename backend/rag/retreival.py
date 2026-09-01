@@ -18,9 +18,14 @@ class RetrievalPipeline:
         self.qdrant_api_key = os.getenv("QDRANT_API_KEY")
 
         # Serverless Cloud API (Uses ~0 MB server RAM)
+        hf_token = (
+            os.getenv("HF_TOKEN_EMBEDDING")
+            or os.getenv("HF_TOKEN")
+            or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+        )
         self.embeddings = HuggingFaceEndpointEmbeddings(
             model="BAAI/bge-base-en-v1.5",
-            huggingfacehub_api_token=os.getenv("HF_TOKEN"),
+            huggingfacehub_api_token=hf_token,
         )
         self.client = QdrantClient(
             url=self.qdrant_url,

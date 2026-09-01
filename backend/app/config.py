@@ -23,6 +23,8 @@ class Settings:
     supabase_jwks_url: str | None
     groq_api_key: str | None
     groq_model: str
+    hf_token: str | None
+    hf_token_embedding: str | None
     frontend_origins: list[str]
 
     def __init__(self) -> None:
@@ -53,6 +55,8 @@ class Settings:
         self.supabase_jwks_url = _optional_env("SUPABASE_JWKS_URL")
         self.groq_api_key = _optional_env("GROQ_API_KEY")
         self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
+        self.hf_token = _optional_env("HF_TOKEN")
+        self.hf_token_embedding = _optional_env("HF_TOKEN_EMBEDDING") or self.hf_token
         self.frontend_origins = [
             origin.strip()
             for origin in os.getenv(
