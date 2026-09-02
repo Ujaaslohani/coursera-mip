@@ -24,6 +24,7 @@ class Settings:
     groq_api_key: str | None
     groq_model: str
     hf_token: str | None
+    hf_token_original: str | None
     hf_token_embedding: str | None
     frontend_origins: list[str]
 
@@ -37,6 +38,8 @@ class Settings:
             or os.getenv("BACKEND_KEY")
             or os.getenv("QDRANT_BACKEND_KEY")
         )
+        if self.qdrant_api_key:
+            os.environ.setdefault("QDRANT_API_KEY", self.qdrant_api_key)
         self.embedding_model = os.getenv(
             "EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5"
         ).strip()
@@ -56,7 +59,14 @@ class Settings:
         self.groq_api_key = _optional_env("GROQ_API_KEY")
         self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
         self.hf_token = _optional_env("HF_TOKEN")
-        self.hf_token_embedding = _optional_env("HF_TOKEN_EMBEDDING") or self.hf_token
+        self.hf_token_original = _optional_env("HF_TOKEN_ORIGINAL") or self.hf_token
+        self.hf_token_embedding = (
+            _optional_env("HF_TOKEN_EMBEDDING")
+            or self.hf_token_original
+            or self.hf_token
+        )
+        if self.hf_token_embedding:
+            os.environ.setdefault("HF_TOKEN_EMBEDDING", self.hf_token_embedding)
         self.frontend_origins = [
             origin.strip()
             for origin in os.getenv(

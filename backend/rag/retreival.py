@@ -15,11 +15,16 @@ class RetrievalPipeline:
     def __init__(self, collection_name: str = "COURSEERA_ALMAX_MULTIMODAL"):
         self.collection_name = collection_name
         self.qdrant_url = os.getenv("QDRANT_URL")
-        self.qdrant_api_key = os.getenv("QDRANT_API_KEY")
+        self.qdrant_api_key = (
+            os.getenv("QDRANT_API_KEY")
+            or os.getenv("BACKEND_KEY")
+            or os.getenv("QDRANT_BACKEND_KEY")
+        )
 
         # Serverless Cloud API (Uses ~0 MB server RAM)
         hf_token = (
             os.getenv("HF_TOKEN_EMBEDDING")
+            or os.getenv("HF_TOKEN_ORIGINAL")
             or os.getenv("HF_TOKEN")
             or os.getenv("HUGGINGFACEHUB_API_TOKEN")
         )
