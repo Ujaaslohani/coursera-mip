@@ -123,5 +123,5 @@ class RetrievalPipeline:
         return standardized_chunks
 
 
-# Global singleton pipeline instance
+# Global singleton pipeline instances
 pipeline = RetrievalPipeline()
