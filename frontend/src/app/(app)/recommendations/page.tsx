@@ -41,12 +41,17 @@ export default function RecommendationsPage() {
   );
 
   const handleSelectRecommendation = (item: Recommendation) => {
+    console.log("[Recommendations] Selected recommendation:", item);
     setSelectedRecommendation(item);
     setNoteText(item.note || "");
   };
 
   const handleAccept = () => {
     if (!selectedRecommendation || reviewFeedback.isPending) return;
+    console.log("[Recommendations] Accepting recommendation:", {
+      id: selectedRecommendation.id,
+      notes: noteText,
+    });
     reviewFeedback.mutate(
       {
         response_id: selectedRecommendation.id,
@@ -61,6 +66,10 @@ export default function RecommendationsPage() {
 
   const handleReject = () => {
     if (!selectedRecommendation || reviewFeedback.isPending) return;
+    console.log("[Recommendations] Rejecting recommendation:", {
+      id: selectedRecommendation.id,
+      notes: noteText,
+    });
     reviewFeedback.mutate(
       {
         response_id: selectedRecommendation.id,

@@ -146,10 +146,15 @@ class SupabaseService:
             )[0]
             response_id = response["response_id"]
 
-            evidence_records = [
-                _evidence_payload(item, response_id, rank)
-                for rank, item in enumerate(request.evidence, start=1)
-            ]
+            evidence_records = []
+            seen_qdrant_ids: set[str] = set()
+            for rank, item in enumerate(request.evidence, start=1):
+                payload = _evidence_payload(item, response_id, rank)
+                qdrant_record_id = payload["qdrant_record_id"]
+                if qdrant_record_id in seen_qdrant_ids:
+                    continue
+                seen_qdrant_ids.add(qdrant_record_id)
+                evidence_records.append(payload)
             if evidence_records:
                 self._request(
                     "POST",

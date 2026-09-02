@@ -98,6 +98,11 @@ export function useChatSession(): UseChatSessionReturn {
       const trimmed = input.trim();
       if (!trimmed || synthesize.isPending) return;
 
+      console.log("[useChatSession] Submitting message:", {
+        query: trimmed,
+        conversationId,
+      });
+
       // Add user message optimistically
       setMessages((prev) => [
         ...prev,
@@ -115,6 +120,7 @@ export function useChatSession(): UseChatSessionReturn {
         },
         {
           onSuccess: (data) => {
+            console.log("[useChatSession] Synthesis success:", data);
             if (!conversationId) setConversationId(data.conversation_id);
             setActiveChatId(data.conversation_id);
 
@@ -136,7 +142,8 @@ export function useChatSession(): UseChatSessionReturn {
               },
             ]);
           },
-          onError: () => {
+          onError: (error) => {
+            console.error("[useChatSession] Synthesis error:", error);
             setMessages((prev) => [
               ...prev,
               {
@@ -152,6 +159,7 @@ export function useChatSession(): UseChatSessionReturn {
   );
 
   const handleNewChat = useCallback(() => {
+    console.log("[useChatSession] Starting new chat");
     setMessages([]);
     setConversationId(null);
     setActiveChatId(null);
@@ -160,6 +168,7 @@ export function useChatSession(): UseChatSessionReturn {
 
   const handleSelectChat = useCallback(
     (id: string) => {
+      console.log("[useChatSession] Selected chat:", id);
       setActiveChatId(id);
       setConversationId(id);
       setMessages([]);

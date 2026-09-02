@@ -51,6 +51,7 @@ export default function NewRegister() {
 
   async function onSubmit(formData: AssetFormData) {
     setSubmitMessage(null);
+    console.log("[NewRegister] Submitting asset form:", formData);
     try {
       const parsedConceptTags = formData.conceptTags
         ? formData.conceptTags
@@ -68,6 +69,8 @@ export default function NewRegister() {
         permissionScope: ["public"],
       });
 
+      console.log("[NewRegister] Asset registration result:", result);
+
       if (result.asset.duplicate) {
         setSubmitMessage({
           type: "success",
@@ -82,6 +85,7 @@ export default function NewRegister() {
 
       reset();
     } catch (err: unknown) {
+      console.error("[NewRegister] Registration failed:", err);
       const errorMsg =
         err instanceof Error ? err.message : "Failed to register asset.";
       setSubmitMessage({

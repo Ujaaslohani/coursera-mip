@@ -200,7 +200,7 @@ Response: same shape as `GET /api/qdrant/records/{point_id}`.
 
 ### `POST /api/query`
 
-Delegates retrieval to `rag.retreival.pipeline`, which owns hybrid retrieval, BM25, vector retrieval, fusion, and reranking. Requires `COHERE_API_KEY`.
+Delegates retrieval to `rag.retreival.pipeline`, which owns vector retrieval and optional Cohere reranking. If `COHERE_API_KEY` is absent, retrieval falls back to vector-only results.
 
 Request:
 
@@ -245,7 +245,7 @@ Response:
 
 ### `POST /api/context`
 
-Delegates retrieval to `rag.retreival.pipeline` and returns normalized, LLM-ready evidence. Requires `COHERE_API_KEY`.
+Delegates retrieval to `rag.retreival.pipeline` and returns normalized, LLM-ready evidence. Cohere reranking is optional; without `COHERE_API_KEY`, retrieval falls back to vector-only results.
 
 Request:
 
@@ -724,7 +724,7 @@ Response:
 
 ### `POST /api/synthesize`
 
-Creates a grounded insight by calling `rag.synthesis.synthesize_insight`. There is no backend static fallback. Requires `COHERE_API_KEY` when retrieval is needed and `GROQ_API_KEY` for synthesis. The result is persisted to Supabase.
+Creates a grounded insight by calling `rag.synthesis.synthesize_insight`. There is no backend static fallback. Requires `GROQ_API_KEY` for synthesis; `COHERE_API_KEY` is optional for reranking. The result is persisted to Supabase.
 
 Request body:
 

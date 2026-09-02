@@ -114,7 +114,6 @@ class RagService:
         )
 
     def retrieve_chunks(self, query: str, top_k: int) -> list[dict[str, Any]]:
-        self._assert_env("COHERE_API_KEY", "RAG retrieval reranking")
         pipeline = self._load_pipeline()
         try:
             return pipeline.retrieve_and_rerank(query=query, top_k=top_k)
