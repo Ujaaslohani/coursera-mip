@@ -233,3 +233,47 @@ A `503 Service Unavailable` response was observed during an earlier production a
 **PASSED**
 
 The major backend, RAG, LLM, frontend, and production user flows tested for the Coursera MIP application are functioning successfully based on the completed test execution.
+
+
+---
+
+## 10. Automated Testing
+
+Automated tests were implemented using `pytest` to validate retrieval ranking, AI output validation, API functionality, and edge cases.
+
+### Test Structure
+
+```text
+tests/
+├── ai_output_tests/
+│   └── test_ai_output.py
+├── edge_cases/
+│   ├── test_empty_input.py
+│   └── test_not_found.py
+├── functional_tests/
+│   ├── test_conversations.py
+│   └── test_health.py
+└── retrieval_tests/
+    └── test_retrieval.py
+
+    Automated Test Results
+Test Category	Test	Result
+AI Output	Valid confidence value accepted	PASS
+AI Output	Confidence value above 1 rejected	PASS
+Edge Case	Empty query validation	PASS
+Edge Case	Nonexistent insight returns 404	PASS
+Functional	Invalid conversation user ID rejected	PASS
+Functional	Health endpoint returns 200	PASS
+Retrieval	Relevant document ranked first	PASS
+
+Execution Result
+
+Command executed:
+
+python -m pytest .\tests -v
+
+Result:
+
+7 passed in 3.41s
+
+Automated Testing Status: PASS
