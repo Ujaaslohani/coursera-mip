@@ -24,14 +24,14 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
   const curate = useCurateRecommendation()
   const queryClient = useQueryClient()
 
-  // Don't render if there's no action to curate or no insight ID
+  // DON'T RENDER IF THERE'S NO ACTION TO CURATE OR NO INSIGHT ID
   if (!recommendedAction && !content) return null
   if (!insightId) return null
 
   const handleCurate = () => {
     if (isCurated || curate.isPending) return
 
-    // Extract a title from the content (first 80 chars of the summary line)
+    // EXTRACT A TITLE FROM THE CONTENT (FIRST 80 CHARS OF THE SUMMARY LINE)
     const summaryMatch = content.match(/\*\*Summary:\*\*\s*(.+)/);
     const title = summaryMatch
       ? summaryMatch[1].slice(0, 80).trim()
@@ -48,7 +48,7 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
       {
         onSuccess: () => {
           onCurated?.()
-          // Invalidate the recommendations list so the /recommendations page picks it up
+          // INVALIDATE THE RECOMMENDATIONS LIST SO THE /RECOMMENDATIONS PAGE PICKS IT UP
           queryClient.invalidateQueries({ queryKey: ["recommendations"] })
         },
       }

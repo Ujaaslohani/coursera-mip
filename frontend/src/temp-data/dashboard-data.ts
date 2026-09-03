@@ -24,7 +24,7 @@ export const pipelineHealthData: PipelineHealth = {
   failed: 78,
 };
 
-// 5. PROCESSING MONITOR (Strictly using modalities defined in Register Page: Video, Image, Transcript, Quiz, Discussion Thread)
+// 5. PROCESSING MONITOR (STRICTLY USING MODALITIES DEFINED IN REGISTER PAGE: VIDEO, IMAGE, TRANSCRIPT, QUIZ, DISCUSSION THREAD)
 export const processingMonitorData: ProcessingMonitorItem[] = [
   {
     id: "proc-1",

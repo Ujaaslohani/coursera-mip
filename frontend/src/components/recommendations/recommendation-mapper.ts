@@ -1,7 +1,7 @@
 import { Recommendation } from "@/types";
 
 /**
- * Maps a raw Supabase recommendation row to the frontend Recommendation shape.
+ * MAPS A RAW SUPABASE RECOMMENDATION ROW TO THE FRONTEND RECOMMENDATION SHAPE.
  */
 export function mapToRecommendation(raw: any): Recommendation {
   const metadata = raw.metadata || {};
@@ -37,7 +37,7 @@ export function mapToRecommendation(raw: any): Recommendation {
 }
 
 /**
- * Filters a list of recommendations by search query string.
+ * FILTERS A LIST OF RECOMMENDATIONS BY SEARCH QUERY STRING.
  */
 export function filterRecommendations(
   recommendations: Recommendation[],
