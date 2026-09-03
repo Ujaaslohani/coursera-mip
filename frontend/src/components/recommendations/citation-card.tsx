@@ -1,99 +1,73 @@
-import { Citation } from "@/types";
-import {
-  FileVideoCamera,
-  Image as ImageIcon,
-  Captions,
-  FileQuestionMark,
-  MessagesSquare,
-} from "lucide-react";
+"use client";
+
+import React, { useState } from "react";
+import { RecommendationCitation } from "@/types";
+import { getModalityConfig } from "@/constants/modality.constants";
+import { cleanCitationText } from "@/lib/citation-sanitizer";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface CitationCardProps {
-  citation: Citation;
+  citation: RecommendationCitation;
 }
 
 export function CitationTypeBadge({ type }: { type: string }) {
-  const normalizedType = type.toLowerCase();
-
-  if (
-    normalizedType.includes("transcript") ||
-    normalizedType.includes("caption")
-  ) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-        <Captions className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>Transcript</span>
-      </span>
-    );
-  }
-
-  if (normalizedType.includes("image")) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>Image</span>
-      </span>
-    );
-  }
-
-  if (normalizedType.includes("video")) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-        <FileVideoCamera className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>Video</span>
-      </span>
-    );
-  }
-
-  if (
-    normalizedType.includes("quiz") ||
-    normalizedType.includes("question")
-  ) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-        <FileQuestionMark className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>Quiz</span>
-      </span>
-    );
-  }
-
-  if (
-    normalizedType.includes("discussion") ||
-    normalizedType.includes("thread") ||
-    normalizedType.includes("message")
-  ) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-        <MessagesSquare className="h-3.5 w-3.5 text-muted-foreground" />
-        <span>Discussion Thread</span>
-      </span>
-    );
-  }
+  const config = getModalityConfig(type);
+  const IconComponent = config.icon;
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground border border-border/60">
-      <Captions className="h-3.5 w-3.5 text-muted-foreground" />
-      <span>{type}</span>
+      <IconComponent className={`h-3.5 w-3.5 ${config.textColorClass}`} />
+      <span>{config.label}</span>
     </span>
   );
 }
 
 export function CitationCard({ citation }: CitationCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const cleanQuote = cleanCitationText(citation.quote);
+  const isLong = cleanQuote.length > 200;
+
+  const displayText = !isLong || isExpanded
+    ? cleanQuote
+    : cleanQuote.slice(0, 190).trim().replace(/[.,;:]+$/, "") + "...";
+
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-2.5 shadow-2xs">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-2.5 shadow-2xs transition-all hover:border-border/90">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="font-mono text-xs text-muted-foreground font-medium">
           {citation.id}
         </span>
         <CitationTypeBadge type={citation.type} />
       </div>
 
-      <p className="text-xs sm:text-sm font-medium text-foreground leading-relaxed">
-        &ldquo;{citation.quote}&rdquo;
-      </p>
+      {cleanQuote ? (
+        <div className="space-y-1.5">
+          <blockquote className="text-xs sm:text-sm text-foreground/95 leading-relaxed border-l-2 border-primary/30 pl-3 italic">
+            &ldquo;{displayText}&rdquo;
+          </blockquote>
 
-      <p className="text-xs text-muted-foreground italic leading-relaxed">
-        {citation.explanation}
-      </p>
+          {isLong && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer pl-3"
+            >
+              <span>{isExpanded ? "Show less" : "Show full evidence"}</span>
+              {isExpanded ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </button>
+          )}
+        </div>
+      ) : null}
+
+      {citation.explanation && (
+        <p className="text-xs text-muted-foreground italic leading-relaxed pt-0.5">
+          {citation.explanation}
+        </p>
+      )}
     </div>
   );
 }

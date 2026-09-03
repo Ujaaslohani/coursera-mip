@@ -31,7 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       className="border-r border-sidebar-border"
       {...props}
     >
-      <SidebarHeader className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border">
+      <SidebarHeader className="h-14 flex items-center justify-center px-4 border-b border-sidebar-border group-data-[collapsible=icon]:px-1">
         <Link
           href="/dashboard"
           className="flex items-center justify-center w-full py-1"
@@ -52,8 +52,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <Image
               src={logoCollapsed}
               alt="MIP"
-              height={16}
-              className="h-4 w-auto object-contain mx-auto"
+              height={22}
+              className="h-5.5 max-w-[40px] w-auto object-contain mx-auto"
               priority
             />
           </div>

@@ -10,6 +10,7 @@ export interface CurateButtonProps {
   insightId?: string;
   recommendedAction?: string | null;
   content: string;
+  title?: string;
   isCurated?: boolean;
   onCurated?: () => void;
 }
@@ -18,6 +19,7 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
   insightId,
   recommendedAction,
   content,
+  title,
   isCurated,
   onCurated,
 }) => {
@@ -31,16 +33,14 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
   const handleCurate = () => {
     if (isCurated || curate.isPending) return
 
-    // EXTRACT A TITLE FROM THE CONTENT (FIRST 80 CHARS OF THE SUMMARY LINE)
-    const summaryMatch = content.match(/\*\*Summary:\*\*\s*(.+)/);
-    const title = summaryMatch
-      ? summaryMatch[1].slice(0, 80).trim()
-      : content.slice(0, 80).trim();
+    const itemTitle =
+      title ||
+      content.replace(/^\*\*Summary:\*\*\s*/i, "").slice(0, 80).trim();
 
     curate.mutate(
       {
         insight_id: insightId,
-        title,
+        title: itemTitle,
         category: "content_review",
         recommendation_text: recommendedAction || content.slice(0, 500),
         priority: 1,

@@ -1,4 +1,5 @@
 import { Recommendation } from "@/types";
+import { cleanCitationText } from "@/lib/citation-sanitizer";
 
 /**
  * MAPS A RAW SUPABASE RECOMMENDATION ROW TO THE FRONTEND RECOMMENDATION SHAPE.
@@ -30,7 +31,7 @@ export function mapToRecommendation(raw: any): Recommendation {
     citations: evidenceList.map((ev: any) => ({
       id: ev.qdrant_record_id || "",
       type: ev.content_type || "transcript",
-      quote: ev.evidence_text || "",
+      quote: cleanCitationText(ev.evidence_text || ""),
       explanation: `Relevance: ${Math.round((ev.similarity_score || 0) * 100)}% • Rank #${ev.retrieval_rank || "—"}`,
     })),
   };

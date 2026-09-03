@@ -45,6 +45,7 @@ export interface ChatMessage {
   citations?: Citation[];
   insightId?: string;
   recommendedAction?: string | null;
+  parsed?: ParsedInsight;
   isCurated?: boolean;
   curatedSteps?: string[];
 }

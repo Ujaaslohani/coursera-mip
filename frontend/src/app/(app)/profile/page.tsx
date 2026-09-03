@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
   const handleSignOut = () => {
     toast.success("Signed out successfully");
-    router.push("/");
+    router.push("/login");
   };
 
   return (
@@ -108,13 +108,6 @@ export default function ProfilePage() {
                     className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
                   >
                     Lead Reviewer
-                  </Badge>
-                  <Badge
-                    variant="success"
-                    className="text-[10px] px-2 py-0.5 gap-1"
-                  >
-                    <ShieldCheck className="h-3 w-3" />
-                    SSO Active
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground font-medium">
@@ -325,37 +318,6 @@ export default function ProfilePage() {
                       <span>{course}</span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* SECURITY SUMMARY */}
-              <div className="pt-2 border-t border-border/40">
-                <span className="text-xs font-semibold text-muted-foreground block mb-2">
-                  Enterprise Security & Session
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-2 p-2.5 rounded-md bg-muted/30 border border-border/40">
-                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                    <div>
-                      <span className="text-foreground font-medium block text-[11px]">
-                        2FA Enforced
-                      </span>
-                      <span className="text-muted-foreground text-[10px]">
-                        Hardware / Authenticator
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-md bg-muted/30 border border-border/40">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                    <div>
-                      <span className="text-foreground font-medium block text-[11px]">
-                        SSO Provider
-                      </span>
-                      <span className="text-muted-foreground text-[10px]">
-                        Coursera Okta Identity
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </CardContent>

@@ -8,18 +8,10 @@ export interface NavItem {
   badge?: string;
 }
 
-// TYPE AND INTERFACE FOR PROCESSING TABLE
-export type Processing = {
-  mode: string;
-  topic: string;
-  owner: string;
-  stage: string;
-  assetId: string;
-};
-
-export interface Citation {
+// INTERFACE FOR RECOMMENDATION CITATIONS
+export interface RecommendationCitation {
   id: string;
-  type: "transcript" | "image" | "video" | "audio" | "document" | string;
+  type: string;
   quote: string;
   explanation: string;
 }
@@ -34,12 +26,11 @@ export interface Recommendation {
   timestamp: string;
   status?: "pending" | "curated" | "applied" | "rejected";
   suggestedAction?: string;
-  citations?: Citation[];
+  citations?: RecommendationCitation[];
   note?: string;
 }
 
-//REMOVE AND REFACTOR WITH REAL ONES AFTER GETTING APIS--------------------
-// INTERFACES FOR DASHBOARD
+// INTERFACES FOR DASHBOARD METRICS
 export interface DashboardStats {
   totalJobs: number;
   failedJobs: number;
@@ -50,26 +41,9 @@ export interface DashboardStats {
   totalRecommendationsCurated: number;
 }
 
-export interface PipelineHealth {
-  totalUploadedAssets: number;
-  indexed: number;
-  review: number;
-  failed: number;
-  searchable?: number;
-  rejected?: number;
-}
-
-export interface DashboardData {
-  stats: DashboardStats;
-  pipelineHealth: PipelineHealth;
-}
-
-
+// RE-EXPORT DOMAIN TYPES
 export * from "./chat.types";
-export * from "./asset.types";
 export * from "./login.types";
 export * from "./recommendation.types";
 export * from "./metrics.types";
 export * from "./summary.types";
-
-
