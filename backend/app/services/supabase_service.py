@@ -240,10 +240,10 @@ class SupabaseService:
             insight_id=request.insight_id,
         )
 
-    def list_curated_recommendations(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list_curated_recommendations(self, limit: int = 12, offset: int = 0) -> list[dict[str, Any]]:
         return self._request(
             "GET",
-            f"/rest/v1/recommendations?select=*,generated_responses(query_id,generated_answer,response_status,user_queries(query_text),retrieval_evidence(qdrant_record_id,content_type,evidence_text,similarity_score,retrieval_rank))&order=created_at.desc&limit={limit}",
+            f"/rest/v1/recommendations?select=*,generated_responses(query_id,generated_answer,response_status,user_queries(query_text),retrieval_evidence(qdrant_record_id,content_type,evidence_text,similarity_score,retrieval_rank))&order=created_at.desc&limit={limit}&offset={offset}",
         )
 
     def save_feedback(self, request: FeedbackCreateRequest) -> FeedbackResponse:
