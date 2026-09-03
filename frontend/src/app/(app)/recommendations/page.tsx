@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Recommendation } from "@/types";
 import { useRecommendations } from "@/hooks/query/use-recommendations";
@@ -13,32 +13,44 @@ import { RecommendationsToolbar } from "@/components/recommendations/recommendat
 import { RecommendationsGrid } from "@/components/recommendations/recommendations-grid";
 import { RecommendationSheet } from "@/components/recommendations/recommendation-sheet";
 
+const PAGE_SIZE = 12;
+
 export default function RecommendationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
   const [selectedRecommendation, setSelectedRecommendation] =
     useState<Recommendation | null>(null);
   const [noteText, setNoteText] = useState("");
+
+  // RESET TO PAGE 0 WHENEVER SEARCH CHANGES
+  useEffect(() => {
+    setPage(0);
+  }, [searchQuery]);
 
   const {
     data: rawRecommendations = [],
     isLoading,
     isFetching,
     refetch,
-  } = useRecommendations(50);
+  } = useRecommendations({ page, pageSize: PAGE_SIZE });
 
   const reviewFeedback = useReviewFeedback();
 
-  // Map raw Supabase rows to typed Recommendation objects
+  // MAP RAW SUPABASE ROWS TO TYPED RECOMMENDATION OBJECTS
   const recommendations: Recommendation[] = useMemo(
     () => rawRecommendations.map(mapToRecommendation),
     [rawRecommendations]
   );
 
-  // Filter recommendations by search query
+  // CLIENT-SIDE FILTER WITHIN THE CURRENT PAGE (FAST — ONLY 12 ITEMS)
   const filteredRecommendations = useMemo(
     () => filterRecommendations(recommendations, searchQuery),
     [recommendations, searchQuery]
   );
+
+  // HEURISTIC: IF WE GOT A FULL PAGE BACK, THERE'S PROBABLY A NEXT PAGE
+  const hasNextPage = rawRecommendations.length === PAGE_SIZE;
+  const hasPrevPage = page > 0;
 
   const handleSelectRecommendation = (item: Recommendation) => {
     console.log("[Recommendations] Selected recommendation:", item);
@@ -89,12 +101,18 @@ export default function RecommendationsPage() {
         description="Multimodal content suggestions curated using student telemetry and curriculum alignment."
       />
 
-      {/* FILTER AND SEARCH BAR */}
+      {/* FILTER / SEARCH BAR + PAGINATION CONTROLS */}
       <RecommendationsToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onRefresh={() => refetch()}
         isLoading={isLoading || isFetching}
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalOnPage={rawRecommendations.length}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        onPageChange={setPage}
       />
 
       {/* RECOMMENDATIONS GRID / LOADING / EMPTY STATES */}

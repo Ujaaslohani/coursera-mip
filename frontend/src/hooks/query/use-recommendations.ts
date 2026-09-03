@@ -1,15 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 
-// QUERY HOOK — CALLS GET /api/recommendations
-export const useRecommendations = (limit = 50) => {
+interface UseRecommendationsParams {
+  page: number;
+  pageSize: number;
+}
+
+// QUERY HOOK — CALLS GET /api/recommendations WITH SERVER-SIDE PAGINATION
+export const useRecommendations = ({ page, pageSize }: UseRecommendationsParams) => {
+  const offset = page * pageSize;
   return useQuery<any[]>({
-    queryKey: ["recommendations", limit],
+    queryKey: ["recommendations", page, pageSize],
     queryFn: async () => {
       const { data } = await api.get("/api/recommendations", {
-        params: { limit },
+        params: { limit: pageSize, offset },
       });
       return data;
     },
+    staleTime: 30_000,
+    placeholderData: (prev) => prev, // KEEP PREVIOUS PAGE DATA WHILE NEXT PAGE LOADS
   });
 };

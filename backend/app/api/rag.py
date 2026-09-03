@@ -94,10 +94,11 @@ def curate_recommendation(
 
 @router.get("/recommendations", response_model=list[dict])
 def list_recommendations(
-    limit: int = Query(default=50, ge=1, le=100),
+    limit: int = Query(default=12, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     service: SupabaseService = Depends(get_supabase_service),
 ) -> list[dict]:
-    return service.list_curated_recommendations(limit=limit)
+    return service.list_curated_recommendations(limit=limit, offset=offset)
 
 
 @router.get("/insights", response_model=list[dict])
