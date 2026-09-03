@@ -1,36 +1,49 @@
-"use client"
+"use client";
 
-import React from "react"
+import React from "react";
 import {
   type ActionData,
   type ActionStep,
   type Citation,
   type ParsedInsight,
-} from "@/types/chat.types"
+} from "@/types/chat.types";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { getModalityIcon } from "./modality-icon"
+} from "@/components/ui/tooltip";
+import { getModalityIcon } from "./modality-icon";
 
 /**
  * Parses structured markdown headers from LLM synthesis text.
+ * Supports both bold-markdown (**Summary:**) and plain-text (Summary:) headers.
  */
 export function parseInsightContent(content: string): ParsedInsight {
-  const summaryMatch = content.match(
-    /\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*Friction Diagnostic:\*\*|\*\*Recommended Action:\*\*|$)/i
-  )
-  const frictionMatch = content.match(
-    /\*\*Friction Diagnostic:\*\*\s*([\s\S]*?)(?=\*\*Recommended Action:\*\*|$)/i
-  )
-  const actionMatch = content.match(/\*\*Recommended Action:\*\*\s*([\s\S]*?)$/i)
+  // Try bold-markdown headers first
+  let summaryMatch = content.match(
+    /\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*Friction Diagnostic:\*\*|\*\*Recommended Action:\*\*|$)/i,
+  );
+  let frictionMatch = content.match(
+    /\*\*Friction Diagnostic:\*\*\s*([\s\S]*?)(?=\*\*Recommended Action:\*\*|$)/i,
+  );
+  let actionMatch = content.match(/\*\*Recommended Action:\*\*\s*([\s\S]*?)$/i);
 
-  const summary = summaryMatch ? summaryMatch[1].trim() : undefined
-  const friction = frictionMatch ? frictionMatch[1].trim() : undefined
-  const action = actionMatch ? actionMatch[1].trim() : undefined
+  // If bold-markdown didn't find anything, try plain-text headers (e.g. "Summary:" at start of line)
+  if (!summaryMatch && !frictionMatch && !actionMatch) {
+    summaryMatch = content.match(
+      /^Summary:\s*([\s\S]*?)(?=Friction Diagnostic:|Recommended Action:|$)/im,
+    );
+    frictionMatch = content.match(
+      /^Friction Diagnostic:\s*([\s\S]*?)(?=Recommended Action:|$)/im,
+    );
+    actionMatch = content.match(/^Recommended Action:\s*([\s\S]*?)$/im);
+  }
 
-  const isStructured = Boolean(summary || friction || action)
+  const summary = summaryMatch ? summaryMatch[1].trim() : undefined;
+  const friction = frictionMatch ? frictionMatch[1].trim() : undefined;
+  const action = actionMatch ? actionMatch[1].trim() : undefined;
+
+  const isStructured = Boolean(summary || friction || action);
 
   return {
     summary,
@@ -38,39 +51,70 @@ export function parseInsightContent(content: string): ParsedInsight {
     action,
     isStructured,
     rawText: content,
-  }
+  };
 }
 
 /**
  * Extracts intro and numbered steps from recommended action text.
+ * Deduplicates intro when it substantially overlaps with the first step.
  */
 export function parseActionSteps(actionText: string): ActionData {
-  const parts = actionText.split(/\((\d+)\)\s*/)
+  const parts = actionText.split(/\((\d+)\)\s*/);
   if (parts.length > 2) {
-    const intro = parts[0].trim()
-    const steps: ActionStep[] = []
+    const intro = parts[0].trim();
+    const steps: ActionStep[] = [];
     for (let i = 1; i < parts.length; i += 2) {
-      const num = parts[i]
-      const text = parts[i + 1]?.trim() || ""
-      if (text) steps.push({ number: num, text })
+      const num = parts[i];
+      const text = parts[i + 1]?.trim() || "";
+      if (text) steps.push({ number: num, text });
     }
-    return { intro, steps }
+    // Deduplicate: drop intro if it substantially overlaps with first step
+    const cleanIntro = deduplicateIntro(intro, steps);
+    return { intro: cleanIntro, steps };
   }
 
-  const numParts = actionText.split(/\n(?=\d+\.\s+)/)
-  console.log(numParts)
+  const numParts = actionText.split(/\n(?=\d+\.\s+)/);
   if (numParts.length > 1) {
-    const intro = numParts[0].startsWith("1.") ? "" : numParts[0].trim()
+    const rawIntro = numParts[0].startsWith("1.") ? "" : numParts[0].trim();
     const steps: ActionStep[] = numParts
       .filter((p) => /^\d+\.\s+/.test(p.trim()))
       .map((p, idx) => ({
         number: String(idx + 1),
         text: p.replace(/^\d+\.\s+/, "").trim(),
-      }))
-    return { intro, steps }
+      }));
+    // Deduplicate: drop intro if it substantially overlaps with first step
+    const cleanIntro = deduplicateIntro(rawIntro, steps);
+    return { intro: cleanIntro, steps };
   }
 
-  return { intro: actionText, steps: [] }
+  // Try semicolon-separated items (e.g. "do X; do Y; do Z")
+  const semiParts = actionText.split(/;\s*/).filter(Boolean);
+  if (semiParts.length >= 2) {
+    const steps: ActionStep[] = semiParts.map((s, idx) => ({
+      number: String(idx + 1),
+      text: s.trim().replace(/\.$/, ""),
+    }));
+    return { intro: "", steps };
+  }
+
+  return { intro: actionText, steps: [] };
+}
+
+/**
+ * Drops the intro if its first 50 characters substantially overlap with the first step.
+ */
+function deduplicateIntro(intro: string, steps: ActionStep[]): string {
+  if (!intro || steps.length === 0) return intro;
+  const introNorm = intro.toLowerCase().slice(0, 60);
+  const stepNorm = steps[0].text.toLowerCase().slice(0, 60);
+  // If more than half the characters overlap, the intro is redundant
+  if (
+    introNorm.length > 10 &&
+    stepNorm.includes(introNorm.slice(0, Math.floor(introNorm.length * 0.5)))
+  ) {
+    return "";
+  }
+  return intro;
 }
 
 /**
@@ -78,27 +122,29 @@ export function parseActionSteps(actionText: string): ActionData {
  */
 export function renderProseWithHoverSegmentBadges(
   text: string,
-  citations: Citation[]
+  citations: Citation[],
 ): React.ReactNode {
   const uuidPattern =
-    /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi
+    /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi;
 
-  const parts = text.split(uuidPattern)
+  const parts = text.split(uuidPattern);
   if (parts.length === 1) {
-    return text
+    return text;
   }
 
   return parts.map((part, idx) => {
-    const isUuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-      part
-    )
+    const isUuid =
+      /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+        part,
+      );
 
     if (isUuid) {
       const match = citations.find(
-        (c) => c.point_id.toLowerCase() === part.toLowerCase()
-      )
-      const cIndex = match ? citations.indexOf(match) + 1 : null
-      const label = match?.lecture_id || (cIndex ? `Evidence ${cIndex}` : "Evidence")
+        (c) => c.point_id.toLowerCase() === part.toLowerCase(),
+      );
+      const cIndex = match ? citations.indexOf(match) + 1 : null;
+      const label =
+        match?.lecture_id || (cIndex ? `Evidence ${cIndex}` : "Evidence");
 
       return (
         <Tooltip key={idx}>
@@ -136,9 +182,9 @@ export function renderProseWithHoverSegmentBadges(
             </div>
           </TooltipContent>
         </Tooltip>
-      )
+      );
     }
 
-    return <span key={idx}>{part}</span>
-  })
+    return <span key={idx}>{part}</span>;
+  });
 }

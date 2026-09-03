@@ -2,7 +2,6 @@ import type { NavItem } from "@/types";
 import {
   LayoutDashboard,
   Lightbulb,
-  ServerPlus,
   Sparkles,
 } from "lucide-react";
 
@@ -13,11 +12,7 @@ export const navMain: NavItem[] = [
     url: "/dashboard",
     icon: LayoutDashboard,
   },
-  {
-    title: "Register",
-    url: "/new-register",
-    icon: ServerPlus,
-  },
+
   {
     title: "Ask",
     url: "/chat",
