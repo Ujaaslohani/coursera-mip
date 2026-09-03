@@ -59,36 +59,17 @@ export interface PipelineHealth {
   rejected?: number;
 }
 
-export interface ProcessingMonitorItem {
-  id: string;
-  assetId: string;
-  assetName: string;
-  assetType:
-    | "Video"
-    | "Audio"
-    | "Document"
-    | "PDF"
-    | "Image"
-    | "Transcript"
-    | "Quiz"
-    | "Discussion Thread"
-    | string;
-  currentStage: string;
-  progress: number;
-  isSearchable: "Yes" | "No";
-  status: "completed" | "in_progress" | "failed" | "queued" | "review";
-  updatedAt: string;
-  owner?: string;
-  size?: string;
-}
-
 export interface DashboardData {
   stats: DashboardStats;
   pipelineHealth: PipelineHealth;
-  processingMonitor: ProcessingMonitorItem[];
 }
+
 
 export * from "./chat.types";
 export * from "./asset.types";
 export * from "./login.types";
 export * from "./recommendation.types";
+export * from "./metrics.types";
+export * from "./summary.types";
+
+

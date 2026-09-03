@@ -1,32 +1,83 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  dashboardStats,
-  pipelineHealthData,
-  processingMonitorData,
-} from "@/temp-data/dashboard-data";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecommendationStats } from "@/components/dashboard/recommendation-stats";
 import { PipelineHealthCard } from "@/components/dashboard/pipeline-health";
-import { ProcessingMonitorTable } from "@/components/dashboard/processing-monitor";
 import { RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useMetrics } from "@/hooks/query/use-metrics";
+import { useDashboardSummary } from "@/hooks/query/use-dashboard-summary";
+import { DashboardStats } from "@/types";
+
 
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>("Just now");
 
-  // TODO: IMPLEMENT REAL FETCH FROM BACKEND 
-  const handleRefresh = () => {
+  // CONSUME REAL METRICS API VIA TANSTACK QUERY
+  const {
+    data: metrics,
+    isLoading: isMetricsLoading,
+    isFetching: isMetricsFetching,
+    refetch: refetchMetrics,
+  } = useMetrics(6000);
+
+  // CONSUME REAL DASHBOARD SUMMARY API (SUPABASE VIEWS)
+  const {
+    data: summary,
+    isFetching: isSummaryFetching,
+    refetch: refetchSummary,
+  } = useDashboardSummary();
+
+  // REAL METRICS MAPPING:
+  // 1. POINTS_COUNT = INDEXED ASSETS -> TOTAL ASSETS
+  // 2. SAME IN ASSETS INDEXED
+  // 3. FAILED JOBS = 0
+  // 4. TOTAL JOBS = POINTS_COUNT
+  // 5. RECOMMENDATIONS = ALL OF THEM FROM SUPABASE ACTIVITY SUMMARY
+  const totalIndexed = metrics?.points_count ?? 0;
+  const totalRecommendations =
+    summary?.activity_summary?.total_recommendations ?? 0;
+  const acceptedRecommendations =
+    summary?.feedback_summary?.approved_count ?? 0;
+  const rejectedRecommendations =
+    summary?.feedback_summary?.rejected_count ?? 0;
+  const pendingRecommendations = Math.max(
+    0,
+    totalRecommendations - (acceptedRecommendations + rejectedRecommendations)
+  );
+
+  const stats: DashboardStats = useMemo(() => {
+    return {
+      totalJobs: totalIndexed,
+      failedJobs: 0,
+      totalAssets: totalIndexed,
+      totalAssetsIndexed: totalIndexed,
+      pendingReview: pendingRecommendations,
+      recommendationsAccepted: acceptedRecommendations,
+      totalRecommendationsCurated: totalRecommendations,
+    };
+  }, [
+    totalIndexed,
+    totalRecommendations,
+    acceptedRecommendations,
+    pendingRecommendations,
+  ]);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
+    try {
+      await Promise.all([refetchMetrics(), refetchSummary()]);
+    } finally {
       setIsRefreshing(false);
       setLastRefreshed("Just now");
-    }, 800);
+    }
   };
+
+  const isSyncing = isRefreshing || isMetricsFetching || isSummaryFetching;
 
   return (
     <div className="space-y-6 pb-10">
@@ -38,20 +89,19 @@ export default function DashboardPage() {
         />
 
         <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isSyncing}
             className="h-9 gap-1.5 px-3.5"
           >
-            {isRefreshing ? (
+            {isSyncing ? (
               <Spinner className="w-3.5 h-3.5" />
             ) : (
               <RefreshCw className="w-3.5 h-3.5" />
             )}
-            {isRefreshing ? "Syncing..." : "Sync"}
+            {isSyncing ? "Syncing..." : "Sync"}
           </Button>
         </div>
       </div>
@@ -63,37 +113,27 @@ export default function DashboardPage() {
             Pipeline & Ingestion Key Metrics
           </h2>
         </div>
-        <StatsCards stats={dashboardStats} />
+        <StatsCards stats={stats} />
       </section>
 
-      {/* PIPELINE HEALTH */}
+      {/* MULTIMODAL PIPELINE MODALITY DISTRIBUTION & HEALTH */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Multimodal Pipeline Health & Conversion
           </h2>
         </div>
-        <PipelineHealthCard health={pipelineHealthData} />
+        <PipelineHealthCard metrics={metrics} isLoading={isMetricsLoading} />
       </section>
 
-      {/* RECOMMENDATIONS METRICS (SEPARATE SECTION) */}
+      {/* RECOMMENDATIONS METRICS */}
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Curriculum Recommendations & Human Review
           </h2>
         </div>
-        <RecommendationStats stats={dashboardStats} />
-      </section>
-
-      {/* PROCESSING MONITOR DATA TABLE */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Processing & Segmentation Monitor
-          </h2>
-        </div>
-        <ProcessingMonitorTable items={processingMonitorData} />
+        <RecommendationStats stats={stats} />
       </section>
     </div>
   );

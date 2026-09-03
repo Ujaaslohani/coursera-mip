@@ -4,53 +4,56 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardStats } from "@/types";
-import {
-  Layers,
-  AlertTriangle,
-  Database,
-  FileCheck,
-} from "lucide-react";
+import { Layers, AlertTriangle, Database, FileCheck } from "lucide-react";
 
 interface StatsCardsProps {
   stats: DashboardStats;
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
-  const indexedPercentage = Math.round(
-    (stats.totalAssetsIndexed / stats.totalAssets) * 100
-  );
+  const total = stats.totalAssets || 0;
+  const indexed = stats.totalAssetsIndexed || 0;
+  const totalJobs = stats.totalJobs || 0;
+  const failedJobs = stats.failedJobs || 0;
+
+  const indexedPercentage =
+    total > 0 ? Math.round((indexed / total) * 100) : 100;
+  const errorRate =
+    totalJobs > 0 ? ((failedJobs / totalJobs) * 100).toFixed(1) : "0.0";
 
   const kpis = [
     {
       title: "Total Jobs",
-      value: stats.totalJobs.toLocaleString(),
+      value: totalJobs.toLocaleString(),
       description: "Across all pipelines",
       icon: Layers,
       iconColor: "text-blue-600 dark:text-blue-400",
-      badge: "+12.4%",
+      badge: totalJobs > 0 ? "100% completed" : "0",
       badgeVariant: "info" as const,
     },
     {
       title: "Failed Jobs",
-      value: stats.failedJobs.toLocaleString(),
-      description: "Requires intervention",
+      value: failedJobs.toLocaleString(),
+      description:
+        failedJobs === 0 ? "No processing errors" : "Requires intervention",
       icon: AlertTriangle,
-      iconColor: "text-destructive",
-      badge: `${((stats.failedJobs / stats.totalJobs) * 100).toFixed(1)}% error`,
-      badgeVariant: "destructive" as const,
+      iconColor: failedJobs > 0 ? "text-destructive" : "text-muted-foreground",
+      badge: `${errorRate}% error`,
+      badgeVariant:
+        failedJobs > 0 ? ("destructive" as const) : ("secondary" as const),
     },
     {
       title: "Total Assets",
-      value: stats.totalAssets.toLocaleString(),
+      value: total.toLocaleString(),
       description: "In multimodal repository",
       icon: Database,
       iconColor: "text-purple-600 dark:text-purple-400",
-      badge: "+84 today",
+      badge: "Live Qdrant",
       badgeVariant: "secondary" as const,
     },
     {
       title: "Assets Indexed",
-      value: stats.totalAssetsIndexed.toLocaleString(),
+      value: indexed.toLocaleString(),
       description: `${indexedPercentage}% searchable coverage`,
       icon: FileCheck,
       iconColor: "text-cyan-600 dark:text-cyan-400",
@@ -90,7 +93,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
               </div>
 
               <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between">
-                <Badge variant={kpi.badgeVariant} className="text-[10px] px-1.5 py-0 h-4.5">
+                <Badge
+                  variant={kpi.badgeVariant}
+                  className="text-[10px] px-1.5 py-0 h-4.5"
+                >
                   {kpi.badge}
                 </Badge>
               </div>

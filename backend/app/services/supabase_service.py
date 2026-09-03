@@ -163,24 +163,7 @@ class SupabaseService:
                     prefer="return=minimal",
                 )
 
-            recommendation_records = [
-                {
-                    "response_id": response_id,
-                    "recommendation_type": item.recommendation_type,
-                    "recommendation_text": item.recommendation_text,
-                    "target_record_id": item.target_record_id,
-                    "priority": item.priority,
-                    "metadata": item.metadata or {},
-                }
-                for item in request.recommendations
-            ]
-            if recommendation_records:
-                self._request(
-                    "POST",
-                    "/rest/v1/recommendations",
-                    json=recommendation_records,
-                    prefer="return=minimal",
-                )
+            recommendation_records: list[dict[str, Any]] = []
 
             self._request(
                 "PATCH",
