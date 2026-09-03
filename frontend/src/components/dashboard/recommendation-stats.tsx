@@ -25,17 +25,21 @@ interface RecommendationStatsProps {
 }
 
 export function RecommendationStats({ stats }: RecommendationStatsProps) {
-  const acceptanceRate = Math.round(
-    (stats.recommendationsAccepted / stats.totalRecommendationsCurated) * 100
-  );
-  const pendingPct = Math.round(
-    (stats.pendingReview / stats.totalRecommendationsCurated) * 100
-  );
+  const totalCurated = stats.totalRecommendationsCurated || 0;
+
+  const acceptanceRate =
+    totalCurated > 0
+      ? Math.round((stats.recommendationsAccepted / totalCurated) * 100)
+      : 0;
+  const pendingPct =
+    totalCurated > 0
+      ? Math.round((stats.pendingReview / totalCurated) * 100)
+      : 0;
 
   const recommendationMetrics = [
     {
       title: "Recommendations Curated",
-      value: stats.totalRecommendationsCurated.toLocaleString(),
+      value: totalCurated.toLocaleString(),
       description: "AI-generated multimodal curriculum insights",
       icon: BadgeCheck,
       iconColor: "text-primary",

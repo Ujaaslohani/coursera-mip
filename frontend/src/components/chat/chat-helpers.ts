@@ -1,4 +1,5 @@
 import { type ChatMessage } from "@/types/chat.types";
+import { parseInsightContent } from "./insight-utils";
 
 export interface ConversationHistoryItem {
   id: string;
@@ -33,6 +34,10 @@ export function formatServerMessages(serverMessages: any[]): ChatMessage[] {
 
     if (query.generated_responses && query.generated_responses.length > 0) {
       const response = query.generated_responses[0];
+
+      // EXTRACT recommendedAction FROM THE STRUCTURED generated_answer TEXT.
+      const parsed = parseInsightContent(response.generated_answer || "");
+
       formatted.push({
         role: "assistant",
         content: response.generated_answer,
@@ -46,13 +51,13 @@ export function formatServerMessages(serverMessages: any[]): ChatMessage[] {
             score: e.similarity_score,
             text_preview: e.evidence_text,
           })) || [],
-        recommendedAction:
-          response.recommendations?.length > 0
-            ? response.recommendations[0].recommendation_text
-            : null,
+        recommendedAction: parsed.action || null,
+        // isCurated = true only when the user has explicitly curated via the
+        // "+" button, which patches response_status to "pending".
         isCurated:
           response.response_status === "pending" ||
-          response.response_status === "curated",
+          response.response_status === "accepted",
+        // curatedSteps from human-curated recommendations rows only
         curatedSteps:
           response.recommendations?.map((r: any) => r.recommendation_text) || [],
       });

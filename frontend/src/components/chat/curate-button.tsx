@@ -50,6 +50,7 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
           onCurated?.()
           // INVALIDATE THE RECOMMENDATIONS LIST SO THE /RECOMMENDATIONS PAGE PICKS IT UP
           queryClient.invalidateQueries({ queryKey: ["recommendations"] })
+          queryClient.invalidateQueries({ queryKey: ["conversation-messages"] })
         },
       }
     )

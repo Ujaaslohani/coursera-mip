@@ -74,7 +74,7 @@ export const InsightActions: React.FC<InsightActionsProps> = ({
             insightId={insightId}
             stepText={actionData.intro}
             fullAction={action}
-            isCurated={curatedSteps.includes(actionData.intro)}
+            isCurated={curatedSteps.includes(actionData.intro) || isCurated}
             onCurated={onCurated}
           />
           <p className="text-foreground/90 leading-relaxed text-sm flex-1">
@@ -129,6 +129,7 @@ const CurateStepButton: React.FC<CurateStepButtonProps> = ({
           setAdded(true)
           onCurated?.(stepText)
           queryClient.invalidateQueries({ queryKey: ["recommendations"] })
+          queryClient.invalidateQueries({ queryKey: ["conversation-messages"] })
         },
       }
     )
