@@ -68,7 +68,7 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
 
   return (
     <div className="mt-3 pt-3 border-t border-border/50">
-      {recommendedAction && (
+      {recommendedAction && !content.includes(recommendedAction.slice(0, 60)) && (
         <p className="text-xs text-muted-foreground mb-2 line-clamp-2 leading-relaxed">
           <span className="font-medium text-foreground/80">Suggested: </span>
           {recommendedAction}

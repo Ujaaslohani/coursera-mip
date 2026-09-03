@@ -37,21 +37,26 @@ export const InsightMessageCard: React.FC<InsightMessageCardProps> = ({
 
   if (!parsed.isStructured) {
     return (
-      <div className="space-y-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-        {renderProseWithHoverSegmentBadges(content, citations)}
-        {confidencePercent !== null && (
-          <div className="text-[11px] text-muted-foreground pt-1">
-            {confidencePercent}% confidence
+      <TooltipProvider>
+        <div className="space-y-4 text-foreground text-sm">
+          <div className="leading-relaxed whitespace-pre-wrap">
+            {renderProseWithHoverSegmentBadges(content, citations)}
           </div>
-        )}
-        <CurateButton
-          insightId={insightId}
-          recommendedAction={recommendedAction}
-          content={content}
-          isCurated={isCurated}
-          onCurated={onCurated}
-        />
-      </div>
+          <InsightCitations citations={citations} confidencePercent={confidencePercent} />
+          {!citations.length && confidencePercent !== null && (
+            <div className="text-[11px] text-muted-foreground font-mono pt-1">
+              {confidencePercent}% confidence
+            </div>
+          )}
+          <CurateButton
+            insightId={insightId}
+            recommendedAction={recommendedAction}
+            content={content}
+            isCurated={isCurated}
+            onCurated={onCurated}
+          />
+        </div>
+      </TooltipProvider>
     )
   }
 
