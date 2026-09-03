@@ -74,7 +74,7 @@ export interface ProcessingMonitorItem {
     | "Discussion Thread"
     | string;
   currentStage: string;
-  progress: number; // 0 - 100 percentage
+  progress: number;
   isSearchable: "Yes" | "No";
   status: "completed" | "in_progress" | "failed" | "queued" | "review";
   updatedAt: string;

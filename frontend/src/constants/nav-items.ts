@@ -5,7 +5,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-// Navigation items for the sidebar
+// NAVIGATION ITEMS FOR THE SIDEBAR
 export const navMain: NavItem[] = [
   {
     title: "Dashboard",

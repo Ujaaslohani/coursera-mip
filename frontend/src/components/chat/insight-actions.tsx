@@ -86,7 +86,7 @@ export const InsightActions: React.FC<InsightActionsProps> = ({
   )
 }
 
-// ── Individual step curate button ──────────────────────────────────
+// ── INDIVIDUAL STEP CURATE BUTTON ──────────────────────────────────
 
 interface CurateStepButtonProps {
   insightId?: string
@@ -135,7 +135,7 @@ const CurateStepButton: React.FC<CurateStepButtonProps> = ({
   }
 
   if (!insightId) {
-    // No insight ID — render the button as decorative (no handler)
+    // NO INSIGHT ID — RENDER THE BUTTON AS DECORATIVE (NO HANDLER)
     return (
       <Tooltip>
         <TooltipTrigger

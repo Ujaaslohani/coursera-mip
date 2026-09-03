@@ -15,11 +15,11 @@ import {
 import { getModalityIcon } from "./modality-icon";
 
 /**
- * Parses structured markdown headers from LLM synthesis text.
- * Supports both bold-markdown (**Summary:**) and plain-text (Summary:) headers.
+ * PARSES STRUCTURED MARKDOWN HEADERS FROM LLM SYNTHESIS TEXT.
+ * SUPPORTS BOTH BOLD-MARKDOWN (**Summary:**) AND PLAIN-TEXT (Summary:) HEADERS.
  */
 export function parseInsightContent(content: string): ParsedInsight {
-  // Try bold-markdown headers first
+  // TRY BOLD-MARKDOWN HEADERS FIRST
   let summaryMatch = content.match(
     /\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*Friction Diagnostic:\*\*|\*\*Recommended Action:\*\*|$)/i,
   );
@@ -28,7 +28,7 @@ export function parseInsightContent(content: string): ParsedInsight {
   );
   let actionMatch = content.match(/\*\*Recommended Action:\*\*\s*([\s\S]*?)$/i);
 
-  // If bold-markdown didn't find anything, try plain-text headers (e.g. "Summary:" at start of line)
+  // IF BOLD-MARKDOWN DIDN'T FIND ANYTHING, TRY PLAIN-TEXT HEADERS (e.g. "Summary:" AT START OF LINE)
   if (!summaryMatch && !frictionMatch && !actionMatch) {
     summaryMatch = content.match(
       /^Summary:\s*([\s\S]*?)(?=Friction Diagnostic:|Recommended Action:|$)/im,
@@ -55,8 +55,8 @@ export function parseInsightContent(content: string): ParsedInsight {
 }
 
 /**
- * Extracts intro and numbered steps from recommended action text.
- * Deduplicates intro when it substantially overlaps with the first step.
+ * EXTRACTS INTRO AND NUMBERED STEPS FROM RECOMMENDED ACTION TEXT.
+ * DEDUPLICATES INTRO WHEN IT SUBSTANTIALLY OVERLAPS WITH THE FIRST STEP.
  */
 export function parseActionSteps(actionText: string): ActionData {
   const parts = actionText.split(/\((\d+)\)\s*/);
@@ -68,7 +68,7 @@ export function parseActionSteps(actionText: string): ActionData {
       const text = parts[i + 1]?.trim() || "";
       if (text) steps.push({ number: num, text });
     }
-    // Deduplicate: drop intro if it substantially overlaps with first step
+    // DEDUPLICATE: DROP INTRO IF IT SUBSTANTIALLY OVERLAPS WITH FIRST STEP
     const cleanIntro = deduplicateIntro(intro, steps);
     return { intro: cleanIntro, steps };
   }
@@ -82,12 +82,12 @@ export function parseActionSteps(actionText: string): ActionData {
         number: String(idx + 1),
         text: p.replace(/^\d+\.\s+/, "").trim(),
       }));
-    // Deduplicate: drop intro if it substantially overlaps with first step
+    // DEDUPLICATE: DROP INTRO IF IT SUBSTANTIALLY OVERLAPS WITH FIRST STEP
     const cleanIntro = deduplicateIntro(rawIntro, steps);
     return { intro: cleanIntro, steps };
   }
 
-  // Try semicolon-separated items (e.g. "do X; do Y; do Z")
+  // TRY SEMICOLON-SEPARATED ITEMS (e.g. "do X; do Y; do Z")
   const semiParts = actionText.split(/;\s*/).filter(Boolean);
   if (semiParts.length >= 2) {
     const steps: ActionStep[] = semiParts.map((s, idx) => ({
@@ -101,13 +101,13 @@ export function parseActionSteps(actionText: string): ActionData {
 }
 
 /**
- * Drops the intro if its first 50 characters substantially overlap with the first step.
+ * DROPS THE INTRO IF ITS FIRST 50 CHARACTERS SUBSTANTIALLY OVERLAP WITH THE FIRST STEP.
  */
 function deduplicateIntro(intro: string, steps: ActionStep[]): string {
   if (!intro || steps.length === 0) return intro;
   const introNorm = intro.toLowerCase().slice(0, 60);
   const stepNorm = steps[0].text.toLowerCase().slice(0, 60);
-  // If more than half the characters overlap, the intro is redundant
+  // IF MORE THAN HALF THE CHARACTERS OVERLAP, THE INTRO IS REDUNDANT
   if (
     introNorm.length > 10 &&
     stepNorm.includes(introNorm.slice(0, Math.floor(introNorm.length * 0.5)))
@@ -118,7 +118,7 @@ function deduplicateIntro(intro: string, steps: ActionStep[]): string {
 }
 
 /**
- * Replaces raw UUID strings in text with clean interactive hover badges.
+ * REPLACES RAW UUID STRINGS IN TEXT WITH CLEAN INTERACTIVE HOVER BADGES.
  */
 export function renderProseWithHoverSegmentBadges(
   text: string,

@@ -24,7 +24,7 @@ def create_conversation(
 
 @router.get("/conversations", response_model=list[ConversationResponse])
 def conversations(
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=50, ge=1, le=500),
     service: SupabaseService = Depends(get_supabase_service),
 ) -> list[ConversationResponse]:
     return service.list_conversations(limit=limit)

@@ -13,18 +13,15 @@ import {
 } from "@/components/chat/chat-helpers";
 
 export interface UseChatSessionReturn {
-  // State
+  // STATE
   messages: ChatMessage[];
   input: string;
   activeChatId: string | null;
   activeChatTitle?: string;
   isMessagesFetching: boolean;
   isSynthesizing: boolean;
-  serverConversations: any[];
-  isHistoryLoading: boolean;
-  isHistoryFetching: boolean;
 
-  // Actions
+  // ACTIONS
   setInput: (value: string) => void;
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -33,31 +30,51 @@ export interface UseChatSessionReturn {
   handleCurateStep: (msgIndex: number, stepText?: string) => void;
 }
 
+const SESSION_KEY = "chat_session";
+
+function readSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as { activeChatId: string | null; conversationId: string | null; input: string }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(data: { activeChatId: string | null; conversationId: string | null; input: string }) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch {
+  }
+}
+
 export function useChatSession(): UseChatSessionReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatIdParam = searchParams.get("id");
 
-  const [activeChatId, setActiveChatId] = useState<string | null>(chatIdParam);
-  const [conversationId, setConversationId] = useState<string | null>(chatIdParam);
-  const [input, setInput] = useState("");
+  // SEED STATE FROM SESSIONSTORAGE SO IT SURVIVES NAVIGATION-TRIGGERED UNMOUNTS
+  const [activeChatId, setActiveChatId] = useState<string | null>(() => chatIdParam ?? readSession()?.activeChatId ?? null);
+  const [conversationId, setConversationId] = useState<string | null>(() => chatIdParam ?? readSession()?.conversationId ?? null);
+  const [input, setInput] = useState(() => readSession()?.input ?? "");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const queryClient = useQueryClient();
 
-  // Server Queries
-  const {
-    data: serverConversations = [],
-    isLoading: isHistoryLoading,
-    isFetching: isHistoryFetching,
-  } = useConversations(50);
+  // SERVER QUERIES — useConversations IS KEPT ONLY FOR THE ACTIVE CHAT TITLE LOOKUP
+  const { data: serverConversations = [] } = useConversations(50);
 
   const { data: serverMessages = [], isFetching: isMessagesFetching } =
     useConversationMessages(activeChatId);
 
   const synthesize = useSynthesize();
 
-  // Sync state if URL query param changes directly
+  // PERSIST SESSION TO SESSIONSTORAGE WHENEVER KEY STATE CHANGES
+  useEffect(() => {
+    writeSession({ activeChatId, conversationId, input });
+  }, [activeChatId, conversationId, input]);
+
+  // SYNC STATE IF URL QUERY PARAM CHANGES DIRECTLY
   useEffect(() => {
     if (chatIdParam !== activeChatId) {
       setActiveChatId(chatIdParam);
@@ -65,20 +82,20 @@ export function useChatSession(): UseChatSessionReturn {
     }
   }, [chatIdParam]);
 
-  // Sync server messages to local messages
+  // SYNC SERVER MESSAGES TO LOCAL MESSAGES
   useEffect(() => {
     if (activeChatId && serverMessages.length > 0) {
       setMessages(formatServerMessages(serverMessages));
     } else if (activeChatId && serverMessages.length === 0 && !isMessagesFetching) {
       if (!messages.some((m) => m.insightId)) {
-        // Keep optimistic messages
+        // KEEP OPTIMISTIC MESSAGES
       } else {
         setMessages([]);
       }
     }
   }, [serverMessages, activeChatId, isMessagesFetching]);
 
-  // Active chat metadata
+  // ACTIVE CHAT METADATA
   const activeChat = useMemo(() => {
     if (!activeChatId) return null;
     const history = mapServerConversations(serverConversations);
@@ -103,7 +120,7 @@ export function useChatSession(): UseChatSessionReturn {
         conversationId,
       });
 
-      // Add user message optimistically
+      // ADD USER MESSAGE OPTIMISTICALLY
       setMessages((prev) => [
         ...prev,
         {
@@ -163,6 +180,9 @@ export function useChatSession(): UseChatSessionReturn {
     setMessages([]);
     setConversationId(null);
     setActiveChatId(null);
+    setInput("");
+    // CLEAR PERSISTED SESSION SO A FRESH /CHAT LOADS BLANK
+    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
     router.push("/chat");
   }, [router]);
 
@@ -205,9 +225,6 @@ export function useChatSession(): UseChatSessionReturn {
     activeChatTitle: activeChat?.title,
     isMessagesFetching,
     isSynthesizing: synthesize.isPending,
-    serverConversations,
-    isHistoryLoading,
-    isHistoryFetching,
     setInput,
     handleInputChange,
     handleSubmit,
