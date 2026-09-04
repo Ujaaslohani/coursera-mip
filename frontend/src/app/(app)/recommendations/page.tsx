@@ -70,7 +70,7 @@ export default function RecommendationsPage() {
     reviewFeedback.mutate(
       {
         response_id: targetResponseId,
-        decision: "accepted",
+        decision: "approved",
         notes: noteText || undefined,
       },
       {

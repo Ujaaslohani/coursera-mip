@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 
 export interface ReviewFeedbackPayload {
   response_id: string;
-  decision: "accepted" | "rejected";
+  decision: "approved" | "rejected";
   notes?: string;
 }
 
@@ -24,7 +24,7 @@ export const useReviewFeedback = () => {
         decision: variables.decision,
       });
       queryClient.invalidateQueries({ queryKey: ["recommendations"] });
-      const action = variables.decision === "accepted" ? "accepted" : "rejected";
+      const action = variables.decision === "approved" ? "accepted" : "rejected";
       toast.success(`Recommendation ${action} successfully`);
     },
     onError: (err: any) => {

@@ -146,6 +146,9 @@ create table public.user_feedback (
 
   constraint user_feedback_rating_check
       check (rating is null or rating between 1 and 5),
+
+  constraint user_feedback_approval_check
+      check (approval is null or approval in ('pending', 'approved', 'rejected')),
   
   constraint one_feedback_per_user_response
       unique (response_id, user_id)
