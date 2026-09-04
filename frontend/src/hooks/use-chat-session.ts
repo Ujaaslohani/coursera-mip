@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ChatMessage } from "@/types/chat.types";
@@ -8,6 +8,8 @@ import { useConversationMessages } from "@/hooks/query/use-conversation-messages
 import { useSynthesize } from "@/hooks/mutations/use-synthesize";
 import { formatServerMessages } from "@/components/chat/chat-helpers";
 import { cleanCitationText } from "@/lib/citation-sanitizer";
+
+const STORAGE_KEY = "mip_active_chat_id";
 
 export interface UseChatSessionReturn {
   // STATE
@@ -33,6 +35,36 @@ export function useChatSession(): UseChatSessionReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeChatId = searchParams.get("id");
+  const hasRestoredRef = useRef(false);
+
+  // RESTORE LAST ACTIVE CHAT WHEN NAVIGATING BACK TO /chat WITHOUT ?id=
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (!activeChatId) {
+      try {
+        const savedId = sessionStorage.getItem(STORAGE_KEY);
+        if (savedId) {
+          hasRestoredRef.current = true;
+          router.replace(`/chat?id=${savedId}`);
+          return;
+        }
+      } catch {
+  
+      }
+    }
+    hasRestoredRef.current = true;
+  }, [activeChatId, router]);
+
+  // PERSIST ACTIVE CHAT ID TO SESSION STORAGE
+  useEffect(() => {
+    if (activeChatId) {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, activeChatId);
+      } catch {
+        // ignore
+      }
+    }
+  }, [activeChatId]);
 
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -122,6 +154,11 @@ export function useChatSession(): UseChatSessionReturn {
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setInput("");
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     router.push("/chat");
   }, [router]);
 
