@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { type Citation } from "@/types/chat.types"
+import { type Citation, type ParsedInsight } from "@/types/chat.types"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { parseInsightContent, renderProseWithHoverSegmentBadges } from "./insight-utils"
 import { InsightSummary } from "./insight-summary"
@@ -16,6 +16,7 @@ export interface InsightMessageCardProps {
   citations?: Citation[];
   insightId?: string;
   recommendedAction?: string | null;
+  parsedInsight?: ParsedInsight;
   isCurated?: boolean;
   curatedSteps?: string[];
   onCurated?: (stepText?: string) => void;
@@ -27,11 +28,12 @@ export const InsightMessageCard: React.FC<InsightMessageCardProps> = ({
   citations = [],
   insightId,
   recommendedAction,
+  parsedInsight,
   isCurated,
   curatedSteps = [],
   onCurated,
 }) => {
-  const parsed = parseInsightContent(content)
+  const parsed = parsedInsight || parseInsightContent(content)
   const confidencePercent =
     confidence !== undefined ? Math.round(confidence * 100) : null
 
@@ -52,6 +54,7 @@ export const InsightMessageCard: React.FC<InsightMessageCardProps> = ({
             insightId={insightId}
             recommendedAction={recommendedAction}
             content={content}
+            title={parsed.summary?.slice(0, 80)}
             isCurated={isCurated}
             onCurated={onCurated}
           />

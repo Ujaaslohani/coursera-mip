@@ -15,7 +15,6 @@ import { DashboardStats } from "@/types";
 
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<string>("Just now");
 
   // CONSUME REAL METRICS API VIA TANSTACK QUERY
   const {
@@ -32,12 +31,6 @@ export default function DashboardPage() {
     refetch: refetchSummary,
   } = useDashboardSummary();
 
-  // REAL METRICS MAPPING:
-  // 1. POINTS_COUNT = INDEXED ASSETS -> TOTAL ASSETS
-  // 2. SAME IN ASSETS INDEXED
-  // 3. FAILED JOBS = 0
-  // 4. TOTAL JOBS = POINTS_COUNT
-  // 5. RECOMMENDATIONS = ALL OF THEM FROM SUPABASE ACTIVITY SUMMARY
   const totalIndexed = metrics?.points_count ?? 0;
   const totalRecommendations =
     summary?.activity_summary?.total_recommendations ?? 0;
@@ -73,7 +66,6 @@ export default function DashboardPage() {
       await Promise.all([refetchMetrics(), refetchSummary()]);
     } finally {
       setIsRefreshing(false);
-      setLastRefreshed("Just now");
     }
   };
 

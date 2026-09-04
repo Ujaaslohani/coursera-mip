@@ -9,6 +9,11 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "Multimodal Intelligence Platform",
   description: "Internal tool for tutors and employees.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -51,4 +56,3 @@ export default function RootLayout({
     </html>
   );
 }
-

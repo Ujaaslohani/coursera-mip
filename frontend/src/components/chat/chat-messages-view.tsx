@@ -53,6 +53,7 @@ export function ChatMessagesView() {
                   citations={msg.citations}
                   insightId={msg.insightId}
                   recommendedAction={msg.recommendedAction}
+                  parsedInsight={msg.parsed}
                   isCurated={msg.isCurated}
                   curatedSteps={msg.curatedSteps}
                   onCurated={(stepText?: string) =>

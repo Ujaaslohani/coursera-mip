@@ -9,9 +9,9 @@ interface ChatEmptyStateProps {
 }
 
 const DEFAULT_SUGGESTIONS = [
-  "Why are students dropping off in lecture 2?",
-  "What is the common misconception in backprop?",
-  "Suggest improvements for the intro module",
+  "What are the common student misconceptions in backpropagation and gradient descent?",
+  "Where are students struggling most in transformer and attention architectures?",
+  "Suggest improvements and gaps in the current course based on 2026 deep learning trends",
 ];
 
 export function ChatEmptyState({
@@ -19,7 +19,7 @@ export function ChatEmptyState({
   onSelectSuggestion,
 }: ChatEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground text-sm gap-2 max-w-md mx-auto">
+    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground text-sm gap-2 max-w-lg mx-auto px-4">
       <MessageSquare className="h-8 w-8 text-muted-foreground/50 mb-1" />
       <p className="font-medium text-foreground text-base">
         {title || "New Conversation"}

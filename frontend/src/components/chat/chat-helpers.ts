@@ -1,12 +1,8 @@
-import { type ChatMessage } from "@/types/chat.types";
+import { type ChatMessage, type ChatHistoryItem } from "@/types/chat.types";
 import { parseInsightContent } from "./insight-utils";
+import { cleanCitationText } from "@/lib/citation-sanitizer";
 
-export interface ConversationHistoryItem {
-  id: string;
-  title: string;
-  timestamp: string;
-  preview: string;
-}
+export type ConversationHistoryItem = ChatHistoryItem;
 
 export function formatTimeAgo(isoString?: string | null): string {
   if (!isoString) return "Recently";
@@ -49,9 +45,10 @@ export function formatServerMessages(serverMessages: any[]): ChatMessage[] {
             content_type: e.content_type,
             lecture_id: e.lecture_id,
             score: e.similarity_score,
-            text_preview: e.evidence_text,
+            text_preview: cleanCitationText(e.evidence_text || ""),
           })) || [],
         recommendedAction: parsed.action || null,
+        parsed,
         // isCurated = true only when the user has explicitly curated via the
         // "+" button, which patches response_status to "pending".
         isCurated:

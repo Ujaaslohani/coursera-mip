@@ -1,16 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ChatMessage } from "@/types/chat.types";
-import { useConversations } from "@/hooks/query/use-conversations";
 import { useConversationMessages } from "@/hooks/query/use-conversation-messages";
 import { useSynthesize } from "@/hooks/mutations/use-synthesize";
-import {
-  formatServerMessages,
-  mapServerConversations,
-} from "@/components/chat/chat-helpers";
+import { formatServerMessages } from "@/components/chat/chat-helpers";
+import { cleanCitationText } from "@/lib/citation-sanitizer";
 
 export interface UseChatSessionReturn {
   // STATE
@@ -30,77 +27,31 @@ export interface UseChatSessionReturn {
   handleCurateStep: (msgIndex: number, stepText?: string) => void;
 }
 
-const SESSION_KEY = "chat_session";
-
-function readSession() {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as { activeChatId: string | null; conversationId: string | null; input: string }) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeSession(data: { activeChatId: string | null; conversationId: string | null; input: string }) {
-  try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-  } catch {
-  }
-}
+const EMPTY_SERVER_MESSAGES: any[] = [];
 
 export function useChatSession(): UseChatSessionReturn {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const chatIdParam = searchParams.get("id");
+  const activeChatId = searchParams.get("id");
 
-  // SEED STATE FROM SESSIONSTORAGE SO IT SURVIVES NAVIGATION-TRIGGERED UNMOUNTS
-  const [activeChatId, setActiveChatId] = useState<string | null>(() => chatIdParam ?? readSession()?.activeChatId ?? null);
-  const [conversationId, setConversationId] = useState<string | null>(() => chatIdParam ?? readSession()?.conversationId ?? null);
-  const [input, setInput] = useState(() => readSession()?.input ?? "");
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const queryClient = useQueryClient();
 
-  // SERVER QUERIES — useConversations IS KEPT ONLY FOR THE ACTIVE CHAT TITLE LOOKUP
-  const { data: serverConversations = [] } = useConversations(50);
-
-  const { data: serverMessages = [], isFetching: isMessagesFetching } =
+  const { data: serverMessages = EMPTY_SERVER_MESSAGES, isFetching: isMessagesFetching } =
     useConversationMessages(activeChatId);
 
   const synthesize = useSynthesize();
-
-  // PERSIST SESSION TO SESSIONSTORAGE WHENEVER KEY STATE CHANGES
-  useEffect(() => {
-    writeSession({ activeChatId, conversationId, input });
-  }, [activeChatId, conversationId, input]);
-
-  // SYNC STATE IF URL QUERY PARAM CHANGES DIRECTLY
-  useEffect(() => {
-    if (chatIdParam !== activeChatId) {
-      setActiveChatId(chatIdParam);
-      setConversationId(chatIdParam);
-    }
-  }, [chatIdParam]);
 
   // SYNC SERVER MESSAGES TO LOCAL MESSAGES
   useEffect(() => {
     if (activeChatId && serverMessages.length > 0) {
       setMessages(formatServerMessages(serverMessages));
-    } else if (activeChatId && serverMessages.length === 0 && !isMessagesFetching) {
-      if (!messages.some((m) => m.insightId)) {
-        // KEEP OPTIMISTIC MESSAGES
-      } else {
-        setMessages([]);
-      }
+    } else if (!activeChatId) {
+      setMessages((prev) => (prev.length > 0 ? [] : prev));
     }
-  }, [serverMessages, activeChatId, isMessagesFetching]);
-
-  // ACTIVE CHAT METADATA
-  const activeChat = useMemo(() => {
-    if (!activeChatId) return null;
-    const history = mapServerConversations(serverConversations);
-    return history.find((h) => h.id === activeChatId) || null;
-  }, [serverConversations, activeChatId]);
+  }, [serverMessages, activeChatId]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,11 +66,6 @@ export function useChatSession(): UseChatSessionReturn {
       const trimmed = input.trim();
       if (!trimmed || synthesize.isPending) return;
 
-      console.log("[useChatSession] Submitting message:", {
-        query: trimmed,
-        conversationId,
-      });
-
       // ADD USER MESSAGE OPTIMISTICALLY
       setMessages((prev) => [
         ...prev,
@@ -133,14 +79,10 @@ export function useChatSession(): UseChatSessionReturn {
       synthesize.mutate(
         {
           query: trimmed,
-          conversation_id: conversationId ?? undefined,
+          conversation_id: activeChatId ?? undefined,
         },
         {
           onSuccess: (data) => {
-            console.log("[useChatSession] Synthesis success:", data);
-            if (!conversationId) setConversationId(data.conversation_id);
-            setActiveChatId(data.conversation_id);
-
             if (activeChatId !== data.conversation_id) {
               router.push(`?id=${data.conversation_id}`);
             }
@@ -153,14 +95,16 @@ export function useChatSession(): UseChatSessionReturn {
                 role: "assistant",
                 content: data.answer_text,
                 confidence: data.confidence,
-                citations: data.citations,
+                citations: (data.citations || []).map((c) => ({
+                  ...c,
+                  text_preview: cleanCitationText(c.text_preview),
+                })),
                 insightId: data.insight_id,
                 recommendedAction: data.recommended_action,
               },
             ]);
           },
-          onError: (error) => {
-            console.error("[useChatSession] Synthesis error:", error);
+          onError: () => {
             setMessages((prev) => [
               ...prev,
               {
@@ -172,25 +116,17 @@ export function useChatSession(): UseChatSessionReturn {
         }
       );
     },
-    [input, synthesize, conversationId, activeChatId, router, queryClient]
+    [input, synthesize, activeChatId, router, queryClient]
   );
 
   const handleNewChat = useCallback(() => {
-    console.log("[useChatSession] Starting new chat");
     setMessages([]);
-    setConversationId(null);
-    setActiveChatId(null);
     setInput("");
-    // CLEAR PERSISTED SESSION SO A FRESH /CHAT LOADS BLANK
-    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
     router.push("/chat");
   }, [router]);
 
   const handleSelectChat = useCallback(
     (id: string) => {
-      console.log("[useChatSession] Selected chat:", id);
-      setActiveChatId(id);
-      setConversationId(id);
       setMessages([]);
       router.push(`?id=${id}`);
     },
@@ -222,7 +158,7 @@ export function useChatSession(): UseChatSessionReturn {
     messages,
     input,
     activeChatId,
-    activeChatTitle: activeChat?.title,
+    activeChatTitle: undefined,
     isMessagesFetching,
     isSynthesizing: synthesize.isPending,
     setInput,

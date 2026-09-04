@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { getModalityIcon } from "./modality-icon"
+import { cleanCitationText } from "@/lib/citation-sanitizer"
 
 interface InsightCitationsProps {
   citations?: Citation[]
@@ -95,7 +96,7 @@ export const InsightCitations: React.FC<InsightCitationsProps> = ({
 
               {isExpanded && (
                 <p className="mt-1.5 pt-1.5 border-t border-border/40 text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {c.text_preview}
+                  {cleanCitationText(c.text_preview)}
                 </p>
               )}
             </div>

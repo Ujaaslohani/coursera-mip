@@ -16,68 +16,14 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { MetricsResponse } from "@/types/metrics.types";
-import {
-  Activity,
-  FileText,
-  Presentation,
-  Film,
-  MessagesSquare,
-  HelpCircle,
-  Layers,
-} from "lucide-react";
+import { Activity } from "lucide-react";
 import { PieChart, Pie, Cell } from "recharts";
+import { getModalityConfig } from "@/constants/modality.constants";
 
 interface PipelineHealthProps {
   metrics?: MetricsResponse | null;
   isLoading?: boolean;
 }
-
-const MODALITY_CONFIG: Record<
-  string,
-  {
-    label: string;
-    subtext: string;
-    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-    color: string;
-    badgeVariant: "default" | "secondary" | "outline" | "info" | "warning";
-  }
-> = {
-  caption: {
-    label: "Captions",
-    subtext: "Spoken lecture transcript chunks",
-    icon: FileText,
-    color: "#3B82F6",
-    badgeVariant: "info",
-  },
-  slide: {
-    label: "Slides",
-    subtext: "Instructional slide images & text",
-    icon: Presentation,
-    color: "#8B5CF6",
-    badgeVariant: "secondary",
-  },
-  frame: {
-    label: "Video Frames",
-    subtext: "Caption-aligned video frames",
-    icon: Film,
-    color: "#06B6D4",
-    badgeVariant: "default",
-  },
-  discussion: {
-    label: "Discussions",
-    subtext: "Forum confusion threads & Q&A",
-    icon: MessagesSquare,
-    color: "#F59E0B",
-    badgeVariant: "warning",
-  },
-  quiz: {
-    label: "Quizzes",
-    subtext: "Formative assessments & questions",
-    icon: HelpCircle,
-    color: "#EC4899",
-    badgeVariant: "outline",
-  },
-};
 
 export function PipelineHealthCard({ metrics, isLoading }: PipelineHealthProps) {
   const contentTypeCounts = metrics?.content_type_counts || {};
@@ -85,16 +31,10 @@ export function PipelineHealthCard({ metrics, isLoading }: PipelineHealthProps) 
     metrics?.points_count ??
     Object.values(contentTypeCounts).reduce((acc, val) => acc + val, 0);
 
-  // DYNAMICALLY MAP MODALITY BREAKDOWN FROM LIVE API RESPONSE
+  // DYNAMICALLY MAP MODALITY BREAKDOWN FROM LIVE API RESPONSE USING CANONICAL CONFIG
   const modalityItems = useMemo(() => {
     return Object.entries(contentTypeCounts).map(([key, count]) => {
-      const config = MODALITY_CONFIG[key.toLowerCase()] || {
-        label: key.charAt(0).toUpperCase() + key.slice(1),
-        subtext: "Indexed multimodal content",
-        icon: Layers,
-        color: "#64748B",
-        badgeVariant: "secondary" as const,
-      };
+      const config = getModalityConfig(key);
       const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
       return {
         key,

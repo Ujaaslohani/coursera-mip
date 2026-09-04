@@ -13,52 +13,48 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getModalityIcon } from "./modality-icon";
+import { cleanCitationText } from "@/lib/citation-sanitizer";
 
 /**
  * PARSES STRUCTURED MARKDOWN HEADERS FROM LLM SYNTHESIS TEXT.
  * SUPPORTS BOTH BOLD-MARKDOWN (**Summary:**) AND PLAIN-TEXT (Summary:) HEADERS.
  */
 export function parseInsightContent(content: string): ParsedInsight {
-  // TRY BOLD-MARKDOWN HEADERS FIRST
-  let summaryMatch = content.match(
-    /\*\*Summary:\*\*\s*([\s\S]*?)(?=\*\*Friction Diagnostic:\*\*|\*\*Recommended Action:\*\*|$)/i,
-  );
-  let frictionMatch = content.match(
-    /\*\*Friction Diagnostic:\*\*\s*([\s\S]*?)(?=\*\*Recommended Action:\*\*|$)/i,
-  );
-  let actionMatch = content.match(/\*\*Recommended Action:\*\*\s*([\s\S]*?)$/i);
-
-  // IF BOLD-MARKDOWN DIDN'T FIND ANYTHING, TRY PLAIN-TEXT HEADERS (e.g. "Summary:" AT START OF LINE)
-  if (!summaryMatch && !frictionMatch && !actionMatch) {
-    summaryMatch = content.match(
-      /^Summary:\s*([\s\S]*?)(?=Friction Diagnostic:|Recommended Action:|$)/im,
-    );
-    frictionMatch = content.match(
-      /^Friction Diagnostic:\s*([\s\S]*?)(?=Recommended Action:|$)/im,
-    );
-    actionMatch = content.match(/^Recommended Action:\s*([\s\S]*?)$/im);
+  if (!content) {
+    return { isStructured: false, rawText: "" };
   }
+
+  // Combined regex matching bold (**Header:**) or plain (Header:) headers
+  const summaryMatch = content.match(
+    /(?:\*\*Summary:\*\*|^Summary:)\s*([\s\S]*?)(?=(?:\*\*Friction Diagnostic:\*\*|^Friction Diagnostic:|\*\*Recommended Action:\*\*|^Recommended Action:|$))/im
+  );
+  const frictionMatch = content.match(
+    /(?:\*\*Friction Diagnostic:\*\*|^Friction Diagnostic:)\s*([\s\S]*?)(?=(?:\*\*Recommended Action:\*\*|^Recommended Action:|$))/im
+  );
+  const actionMatch = content.match(
+    /(?:\*\*Recommended Action:\*\*|^Recommended Action:)\s*([\s\S]*?)$/im
+  );
 
   const summary = summaryMatch ? summaryMatch[1].trim() : undefined;
   const friction = frictionMatch ? frictionMatch[1].trim() : undefined;
   const action = actionMatch ? actionMatch[1].trim() : undefined;
 
-  const isStructured = Boolean(summary || friction || action);
-
   return {
     summary,
     friction,
     action,
-    isStructured,
+    isStructured: Boolean(summary || friction || action),
     rawText: content,
   };
 }
 
 /**
  * EXTRACTS INTRO AND NUMBERED STEPS FROM RECOMMENDED ACTION TEXT.
- * DEDUPLICATES INTRO WHEN IT SUBSTANTIALLY OVERLAPS WITH THE FIRST STEP.
  */
 export function parseActionSteps(actionText: string): ActionData {
+  if (!actionText) return { intro: "", steps: [] };
+
+  // 1. Parenthesized numbers: (1) do X (2) do Y
   const parts = actionText.split(/\((\d+)\)\s*/);
   if (parts.length > 2) {
     const intro = parts[0].trim();
@@ -68,53 +64,23 @@ export function parseActionSteps(actionText: string): ActionData {
       const text = parts[i + 1]?.trim() || "";
       if (text) steps.push({ number: num, text });
     }
-    // DEDUPLICATE: DROP INTRO IF IT SUBSTANTIALLY OVERLAPS WITH FIRST STEP
-    const cleanIntro = deduplicateIntro(intro, steps);
-    return { intro: cleanIntro, steps };
+    return { intro, steps };
   }
 
+  // 2. Numbered lines: 1. do X \n 2. do Y
   const numParts = actionText.split(/\n(?=\d+\.\s+)/);
   if (numParts.length > 1) {
-    const rawIntro = numParts[0].startsWith("1.") ? "" : numParts[0].trim();
+    const intro = numParts[0].startsWith("1.") ? "" : numParts[0].trim();
     const steps: ActionStep[] = numParts
       .filter((p) => /^\d+\.\s+/.test(p.trim()))
       .map((p, idx) => ({
         number: String(idx + 1),
         text: p.replace(/^\d+\.\s+/, "").trim(),
       }));
-    // DEDUPLICATE: DROP INTRO IF IT SUBSTANTIALLY OVERLAPS WITH FIRST STEP
-    const cleanIntro = deduplicateIntro(rawIntro, steps);
-    return { intro: cleanIntro, steps };
-  }
-
-  // TRY SEMICOLON-SEPARATED ITEMS (e.g. "do X; do Y; do Z")
-  const semiParts = actionText.split(/;\s*/).filter(Boolean);
-  if (semiParts.length >= 2) {
-    const steps: ActionStep[] = semiParts.map((s, idx) => ({
-      number: String(idx + 1),
-      text: s.trim().replace(/\.$/, ""),
-    }));
-    return { intro: "", steps };
+    return { intro, steps };
   }
 
   return { intro: actionText, steps: [] };
-}
-
-/**
- * DROPS THE INTRO IF ITS FIRST 50 CHARACTERS SUBSTANTIALLY OVERLAP WITH THE FIRST STEP.
- */
-function deduplicateIntro(intro: string, steps: ActionStep[]): string {
-  if (!intro || steps.length === 0) return intro;
-  const introNorm = intro.toLowerCase().slice(0, 60);
-  const stepNorm = steps[0].text.toLowerCase().slice(0, 60);
-  // IF MORE THAN HALF THE CHARACTERS OVERLAP, THE INTRO IS REDUNDANT
-  if (
-    introNorm.length > 10 &&
-    stepNorm.includes(introNorm.slice(0, Math.floor(introNorm.length * 0.5)))
-  ) {
-    return "";
-  }
-  return intro;
 }
 
 /**
@@ -176,7 +142,14 @@ export function renderProseWithHoverSegmentBadges(
               </p>
               {match?.text_preview && (
                 <p className="text-xs text-foreground/90 leading-relaxed italic border-l-2 border-primary/40 pl-2 pt-0.5">
-                  "{match.text_preview}"
+                  &ldquo;
+                  {(() => {
+                    const cleaned = cleanCitationText(match.text_preview);
+                    return cleaned.length > 180
+                      ? cleaned.slice(0, 180).trim().replace(/[.,;:]+$/, "") + "..."
+                      : cleaned;
+                  })()}
+                  &rdquo;
                 </p>
               )}
             </div>
