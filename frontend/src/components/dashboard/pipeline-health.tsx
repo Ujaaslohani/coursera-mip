@@ -19,13 +19,97 @@ import { MetricsResponse } from "@/types/metrics.types";
 import { Activity } from "lucide-react";
 import { PieChart, Pie, Cell } from "recharts";
 import { getModalityConfig } from "@/constants/modality.constants";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PipelineHealthProps {
   metrics?: MetricsResponse | null;
   isLoading?: boolean;
 }
 
-export function PipelineHealthCard({ metrics, isLoading }: PipelineHealthProps) {
+export function PipelineHealthCard({ metrics, isLoading = false }: PipelineHealthProps) {
+  if (isLoading || !metrics) {
+    return (
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-md bg-muted text-primary border border-border/50">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-heading">
+                  Multimodal Pipeline Distribution
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Lifecycle telemetry and throughput flow across all multimodal ingestion modalities.
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-5 space-y-6">
+          {/* SKELETON FLOW VISUAL BAR */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground font-medium">
+              <Skeleton className="h-3.5 w-44" />
+              <Skeleton className="h-3.5 w-24" />
+            </div>
+            <Skeleton className="h-3 w-full rounded-full" />
+          </div>
+
+          {/* SKELETON METRICS GRID & CHART */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+            {/* BREAKDOWN CARDS */}
+            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-lg border border-border/50 bg-muted/30 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Skeleton className="w-3.5 h-3.5 rounded-full" />
+                      <Skeleton className="h-3.5 w-16" />
+                    </div>
+                    <Skeleton className="h-4 w-10 rounded-md" />
+                  </div>
+
+                  <Skeleton className="h-6 w-20 my-1" />
+
+                  <div className="space-y-1">
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                    <Skeleton className="h-2.5 w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DONUT SKELETON */}
+            <div className="lg:col-span-4 p-4 rounded-xl border border-border/50 bg-muted/20 flex flex-col items-center justify-center">
+              <Skeleton className="h-3.5 w-28 mb-3" />
+              <div className="relative w-full flex items-center justify-center py-2">
+                <Skeleton className="w-32 h-32 rounded-full" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <Skeleton className="h-5 w-14 mb-1" />
+                  <Skeleton className="h-2.5 w-10" />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 mt-3 text-[11px] w-full max-w-xs">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    <Skeleton className="w-2 h-2 rounded-full" />
+                    <Skeleton className="h-2.5 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const contentTypeCounts = metrics?.content_type_counts || {};
   const total =
     metrics?.points_count ??

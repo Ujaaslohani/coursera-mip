@@ -114,7 +114,7 @@ const CurateStepButton: React.FC<CurateStepButtonProps> = ({
   const handleClick = () => {
     if (!insightId || isAdded || curate.isPending) return
 
-    const title = stepText.slice(0, 80).trim()
+    const title = stepText.trim()
 
     curate.mutate(
       {

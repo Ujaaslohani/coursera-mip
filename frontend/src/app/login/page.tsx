@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight, Info, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { type LoginFormValues } from "@/types/login.types";
 
 export default function LoginPage() {
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showForgotAlert, setShowForgotAlert] = useState(false);
 
   const {
     register,
@@ -74,9 +76,33 @@ export default function LoginPage() {
 
             {/* ERROR MESSAGE */}
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
-                <span>{errorMessage}</span>
-              </div>
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* FORGOT PASSWORD ALERT */}
+            {showForgotAlert && (
+              <Alert variant="info" className="mb-4">
+                <Info className="size-4" />
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <AlertTitle>Reset Credentials</AlertTitle>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotAlert(false)}
+                      className="text-muted-foreground hover:text-foreground cursor-pointer -mr-2 -mt-1 p-1"
+                      aria-label="Close alert"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                  <AlertDescription className="mt-0.5">
+                    Please contact your MIP platform administrator to reset credentials.
+                  </AlertDescription>
+                </div>
+              </Alert>
             )}
 
             {/* FORM */}
@@ -121,18 +147,13 @@ export default function LoginPage() {
                   >
                     Password
                   </FieldLabel>
-                  <a
-                    href="#forgot-password"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert(
-                        "Please contact your MIP platform administrator to reset credentials.",
-                      );
-                    }}
-                    className="text-xs font-medium text-primary hover:text-primary-hover transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotAlert((prev) => !prev)}
+                    className="text-xs font-medium text-primary hover:text-primary-hover transition-colors cursor-pointer"
                   >
                     Forgot password?
-                  </a>
+                  </button>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />

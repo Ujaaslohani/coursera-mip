@@ -19,7 +19,9 @@ export interface RecommendationCitation {
 // INTERFACE FOR RECOMMENDATIONS
 export interface Recommendation {
   id: string;
+  responseId?: string;
   title: string;
+  fullTitle?: string;
   queryBy: string;
   category: string;
   description?: string;

@@ -12,7 +12,6 @@ import { useMetrics } from "@/hooks/query/use-metrics";
 import { useDashboardSummary } from "@/hooks/query/use-dashboard-summary";
 import { DashboardStats } from "@/types";
 
-
 export default function DashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -27,6 +26,7 @@ export default function DashboardPage() {
   // CONSUME REAL DASHBOARD SUMMARY API (SUPABASE VIEWS)
   const {
     data: summary,
+    isLoading: isSummaryLoading,
     isFetching: isSummaryFetching,
     refetch: refetchSummary,
   } = useDashboardSummary();
@@ -40,7 +40,7 @@ export default function DashboardPage() {
     summary?.feedback_summary?.rejected_count ?? 0;
   const pendingRecommendations = Math.max(
     0,
-    totalRecommendations - (acceptedRecommendations + rejectedRecommendations)
+    totalRecommendations - (acceptedRecommendations + rejectedRecommendations),
   );
 
   const stats: DashboardStats = useMemo(() => {
@@ -70,6 +70,12 @@ export default function DashboardPage() {
   };
 
   const isSyncing = isRefreshing || isMetricsFetching || isSummaryFetching;
+
+
+  const isInitialLoading = isMetricsLoading || isSummaryLoading;
+  const isStatsLoading = isInitialLoading || !metrics;
+  const isPipelineLoading = isInitialLoading || !metrics;
+  const isRecommendationsLoading = isInitialLoading || !summary;
 
   return (
     <div className="space-y-6 pb-10">
@@ -105,7 +111,7 @@ export default function DashboardPage() {
             Pipeline & Ingestion Key Metrics
           </h2>
         </div>
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} isLoading={isStatsLoading} />
       </section>
 
       {/* MULTIMODAL PIPELINE MODALITY DISTRIBUTION & HEALTH */}
@@ -115,7 +121,7 @@ export default function DashboardPage() {
             Multimodal Pipeline Health & Conversion
           </h2>
         </div>
-        <PipelineHealthCard metrics={metrics} isLoading={isMetricsLoading} />
+        <PipelineHealthCard metrics={metrics} isLoading={isPipelineLoading} />
       </section>
 
       {/* RECOMMENDATIONS METRICS */}
@@ -125,7 +131,7 @@ export default function DashboardPage() {
             Curriculum Recommendations & Human Review
           </h2>
         </div>
-        <RecommendationStats stats={stats} />
+        <RecommendationStats stats={stats} isLoading={isRecommendationsLoading} />
       </section>
     </div>
   );

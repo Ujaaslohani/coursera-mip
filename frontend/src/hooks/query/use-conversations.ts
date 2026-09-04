@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import { type ConversationResponse } from "@/types/chat.types";
 
+// QUERY HOOK — CALLS GET /api/conversations
 export const useConversations = (limit = 50) => {
   return useQuery({
     queryKey: ["conversations", limit],

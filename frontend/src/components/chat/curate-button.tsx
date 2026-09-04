@@ -35,14 +35,14 @@ export const CurateButton: React.FC<CurateButtonProps> = ({
 
     const itemTitle =
       title ||
-      content.replace(/^\*\*Summary:\*\*\s*/i, "").slice(0, 80).trim();
+      content.replace(/^\*\*Summary:\*\*\s*/i, "").trim();
 
     curate.mutate(
       {
         insight_id: insightId,
         title: itemTitle,
         category: "content_review",
-        recommendation_text: recommendedAction || content.slice(0, 500),
+        recommendation_text: recommendedAction || content,
         priority: 1,
       },
       {

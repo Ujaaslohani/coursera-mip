@@ -19,6 +19,7 @@ interface RecommendationSheetProps {
   onNoteChange: (note: string) => void;
   onAccept: () => void;
   onReject: () => void;
+  isSubmitting?: boolean;
 }
 
 export function RecommendationSheet({
@@ -28,6 +29,7 @@ export function RecommendationSheet({
   onNoteChange,
   onAccept,
   onReject,
+  isSubmitting = false,
 }: RecommendationSheetProps) {
   return (
     <Sheet
@@ -55,7 +57,7 @@ export function RecommendationSheet({
               </div>
 
               <SheetTitle className="text-base sm:text-lg font-semibold leading-snug text-foreground text-left">
-                {selectedRecommendation.title}
+                {selectedRecommendation.fullTitle || selectedRecommendation.title}
               </SheetTitle>
 
               <SheetDescription className="text-xs text-muted-foreground flex items-center gap-2 text-left">
@@ -113,16 +115,18 @@ export function RecommendationSheet({
                 variant="outline"
                 size="sm"
                 onClick={onReject}
+                disabled={isSubmitting}
                 className="border-destructive/40 text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-colors font-medium px-4"
               >
-                Reject
+                {isSubmitting ? "Submitting..." : "Reject"}
               </Button>
               <Button
                 size="sm"
                 onClick={onAccept}
+                disabled={isSubmitting}
                 className="bg-primary text-primary-foreground hover:bg-primary-hover font-medium px-4"
               >
-                Accept
+                {isSubmitting ? "Submitting..." : "Accept"}
               </Button>
             </SheetFooter>
           </div>

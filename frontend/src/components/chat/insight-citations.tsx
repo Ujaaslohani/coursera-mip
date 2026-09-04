@@ -81,11 +81,6 @@ export const InsightCitations: React.FC<InsightCitationsProps> = ({
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
-                  {c.score !== undefined && (
-                    <span className="text-[10px] font-mono">
-                      {(c.score * 100).toFixed(0)}%
-                    </span>
-                  )}
                   {isExpanded ? (
                     <ChevronUp className="h-3 w-3" />
                   ) : (

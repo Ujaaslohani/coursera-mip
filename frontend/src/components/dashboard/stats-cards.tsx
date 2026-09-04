@@ -4,13 +4,38 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardStats } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Layers, AlertTriangle, Database, FileCheck } from "lucide-react";
 
 interface StatsCardsProps {
   stats: DashboardStats;
+  isLoading?: boolean;
 }
 
-export function StatsCards({ stats }: StatsCardsProps) {
+export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <Card key={idx} className="border-border/80">
+            <CardContent className="p-4 flex flex-col justify-between h-full">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-7 w-7 rounded-md" />
+              </div>
+              <div className="space-y-1.5 my-1">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+              <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between">
+                <Skeleton className="h-4 w-20 rounded-md" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
   const total = stats.totalAssets || 0;
   const indexed = stats.totalAssetsIndexed || 0;
   const totalJobs = stats.totalJobs || 0;
