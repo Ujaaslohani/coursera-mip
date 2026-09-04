@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DashboardStats } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BadgeCheck,
   CheckCircle2,
@@ -22,9 +23,61 @@ import {
 
 interface RecommendationStatsProps {
   stats: DashboardStats;
+  isLoading?: boolean;
 }
 
-export function RecommendationStats({ stats }: RecommendationStatsProps) {
+export function RecommendationStats({ stats, isLoading = false }: RecommendationStatsProps) {
+  if (isLoading) {
+    return (
+      <Card className="border-border/80 shadow-xs overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-md bg-muted text-primary border border-border/50">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-heading">
+                  Curriculum Recommendations
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  Multimodal learning interventions and instructor approval metrics.
+                </CardDescription>
+              </div>
+            </div>
+
+            <Skeleton className="h-8 w-44 rounded-md" />
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-lg border border-border/50 bg-muted/30 flex flex-col justify-between"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="h-7 w-7 rounded-md" />
+                </div>
+
+                <div className="space-y-1.5 my-2">
+                  <Skeleton className="h-7 w-20" />
+                  <Skeleton className="h-3.5 w-48" />
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-4.5 w-16 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   const totalCurated = stats.totalRecommendationsCurated || 0;
 
   const acceptanceRate =

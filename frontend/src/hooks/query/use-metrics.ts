@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import api from "@/api/axios";
 import { MetricsResponse } from "@/types/metrics.types";
 
-// QUERY HOOK — FETCHES QDRANT COLLECTION METRICS (LIVE DATABASE COUNTS)
+// QUERY HOOK — CALLS GET /api/metrics (LIVE QDRANT COLLECTION METRICS)
 export const useMetrics = (scanLimit = 6000) => {
   return useQuery({
     queryKey: ["metrics", scanLimit],

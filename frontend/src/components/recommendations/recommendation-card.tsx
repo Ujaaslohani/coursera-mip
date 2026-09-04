@@ -33,11 +33,13 @@ export function RecommendationCard({
         </h2>
 
         {/* DESCRIPTION */}
-        {item.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {item.description}
-          </p>
-        )}
+        {item.description &&
+          item.description !== item.fullTitle &&
+          item.description !== item.title && (
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+              {item.description}
+            </p>
+          )}
       </div>
 
       {/* FOOTER */}

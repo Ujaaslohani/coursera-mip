@@ -10,6 +10,7 @@ import {
   filterRecommendations,
 } from "@/components/recommendations/recommendation-mapper";
 import { RecommendationsToolbar } from "@/components/recommendations/recommendations-toolbar";
+import { RecommendationsPagination } from "@/components/recommendations/recommendations-pagination";
 import { RecommendationsGrid } from "@/components/recommendations/recommendations-grid";
 import { RecommendationSheet } from "@/components/recommendations/recommendation-sheet";
 
@@ -31,7 +32,6 @@ export default function RecommendationsPage() {
     data: rawRecommendations = [],
     isLoading,
     isFetching,
-    refetch,
   } = useRecommendations({ page, pageSize: PAGE_SIZE });
 
   const reviewFeedback = useReviewFeedback();
@@ -39,13 +39,13 @@ export default function RecommendationsPage() {
   // MAP RAW SUPABASE ROWS TO TYPED RECOMMENDATION OBJECTS
   const recommendations: Recommendation[] = useMemo(
     () => rawRecommendations.map(mapToRecommendation),
-    [rawRecommendations]
+    [rawRecommendations],
   );
 
   // CLIENT-SIDE FILTER WITHIN THE CURRENT PAGE (FAST — ONLY 12 ITEMS)
   const filteredRecommendations = useMemo(
     () => filterRecommendations(recommendations, searchQuery),
-    [recommendations, searchQuery]
+    [recommendations, searchQuery],
   );
 
   // HEURISTIC: IF WE GOT A FULL PAGE BACK, THERE'S PROBABLY A NEXT PAGE
@@ -60,37 +60,43 @@ export default function RecommendationsPage() {
 
   const handleAccept = () => {
     if (!selectedRecommendation || reviewFeedback.isPending) return;
+    const targetResponseId =
+      selectedRecommendation.responseId || selectedRecommendation.id;
     console.log("[Recommendations] Accepting recommendation:", {
       id: selectedRecommendation.id,
+      responseId: targetResponseId,
       notes: noteText,
     });
     reviewFeedback.mutate(
       {
-        response_id: selectedRecommendation.id,
+        response_id: targetResponseId,
         decision: "accepted",
         notes: noteText || undefined,
       },
       {
         onSuccess: () => setSelectedRecommendation(null),
-      }
+      },
     );
   };
 
   const handleReject = () => {
     if (!selectedRecommendation || reviewFeedback.isPending) return;
+    const targetResponseId =
+      selectedRecommendation.responseId || selectedRecommendation.id;
     console.log("[Recommendations] Rejecting recommendation:", {
       id: selectedRecommendation.id,
+      responseId: targetResponseId,
       notes: noteText,
     });
     reviewFeedback.mutate(
       {
-        response_id: selectedRecommendation.id,
+        response_id: targetResponseId,
         decision: "rejected",
         notes: noteText || undefined,
       },
       {
         onSuccess: () => setSelectedRecommendation(null),
-      }
+      },
     );
   };
 
@@ -101,18 +107,10 @@ export default function RecommendationsPage() {
         description="Multimodal content suggestions curated using student telemetry and curriculum alignment."
       />
 
-      {/* FILTER / SEARCH BAR + PAGINATION CONTROLS */}
+      {/* FILTER / SEARCH BAR */}
       <RecommendationsToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onRefresh={() => refetch()}
-        isLoading={isLoading || isFetching}
-        page={page}
-        pageSize={PAGE_SIZE}
-        totalOnPage={rawRecommendations.length}
-        hasPrevPage={hasPrevPage}
-        hasNextPage={hasNextPage}
-        onPageChange={setPage}
       />
 
       {/* RECOMMENDATIONS GRID / LOADING / EMPTY STATES */}
@@ -121,6 +119,18 @@ export default function RecommendationsPage() {
         isLoading={isLoading}
         searchQuery={searchQuery}
         onSelectRecommendation={handleSelectRecommendation}
+      />
+
+      {/* PAGINATION CONTROLS AT THE END OF RECOMMENDATIONS */}
+      <RecommendationsPagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        totalOnPage={rawRecommendations.length}
+        hasPrevPage={hasPrevPage}
+        hasNextPage={hasNextPage}
+        isLoading={isLoading || isFetching}
+        searchQuery={searchQuery}
+        onPageChange={setPage}
       />
 
       {/* SELECTED RECOMMENDATION DETAIL SHEET */}
@@ -133,6 +143,7 @@ export default function RecommendationsPage() {
         onNoteChange={setNoteText}
         onAccept={handleAccept}
         onReject={handleReject}
+        isSubmitting={reviewFeedback.isPending}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import { Recommendation } from "@/types";
 import { cleanCitationText } from "@/lib/citation-sanitizer";
+import { resolveRecommendationTitles } from "@/lib/recommendation-utils";
 
 /**
  * MAPS A RAW SUPABASE RECOMMENDATION ROW TO THE FRONTEND RECOMMENDATION SHAPE.
@@ -10,9 +11,16 @@ export function mapToRecommendation(raw: any): Recommendation {
   const userQuery = generatedResponse.user_queries || {};
   const evidenceList: any[] = generatedResponse.retrieval_evidence || [];
 
+  const { title, fullTitle } = resolveRecommendationTitles(
+    raw.recommendation_text,
+    metadata.title
+  );
+
   return {
     id: raw.recommendation_id || raw.id || "",
-    title: metadata.title || raw.recommendation_text?.slice(0, 80) || "Untitled",
+    responseId: raw.response_id || generatedResponse.response_id || "",
+    title,
+    fullTitle,
     queryBy: userQuery.query_text || "system",
     category: raw.recommendation_type || "content_review",
     description: raw.recommendation_text || "",
