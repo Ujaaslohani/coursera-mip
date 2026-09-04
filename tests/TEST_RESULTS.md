@@ -21,11 +21,9 @@ This document records the functional and integration testing performed for the C
 
 ## 2. Environment
 
-### Production
-
-- **Frontend:** https://coursera-mip.vercel.app/
-- **Backend:** https://coursera-mip.onrender.com
-
+### Production 
+- **FRONTEND:** https://coursera-mip.vercel.app
+- **BACKEND:** https://coursera-mip-2k0a.onrender.com
 ### Main Technologies
 
 - **Frontend:** Next.js / React
